@@ -1,0 +1,4 @@
+init: battle start 호출
+battle start: text 호출(야생의 ~가 나타났다) -> turn start 호출
+text(텍스트가 표시됨)(텍스트는 자동으로 넘겨지게끔):
+turn start(선택지가 visible됨 -> 선택 하면 invisible -> raise event): 선택지에 맞는 이벤트 raise
