@@ -6,6 +6,7 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.Graphics;
+import java.awt.Point;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 
@@ -138,19 +139,65 @@ public class UI extends JFrame{
         }
 
         class BattleScreen extends JPanel {
+            int x = 0, y = 160, enemyX = 360, enemyY = 0;
             BattleScreen() {
                 setSize(600, 400);
                 setLocation(100, 0);
                 setBackground(Color.GRAY);
                 setVisible(rootPaneCheckingEnabled);
 
+                GameManager.getInstance().registEventListener((Event e) -> {  // ATTACK event 처리
+                    switch (e.type) {
+                        case Event.EVENT_TYPE.ATTACK:
+                            x += 10;
+                            repaint();
+                            try {Thread.sleep(100);} catch (InterruptedException exception) {}
+                            x -= 10;
+                            repaint();
+                            try {Thread.sleep(100);} catch (InterruptedException exception) {}
+
+                            for (int i = 0; i < 3; i++) {
+                                enemyX += 10;
+                                repaint();
+                                try {Thread.sleep(50);} catch (InterruptedException exception) {}
+                                enemyX -= 20;
+                                repaint();
+                                try {Thread.sleep(50);} catch (InterruptedException exception) {}
+                                enemyX += 10;
+                            }
+                            repaint();
+                            break;
+                        case Event.EVENT_TYPE.ENEMY_ATTACK:
+                            enemyX -= 10;
+                            repaint();
+                            try {Thread.sleep(100);} catch (InterruptedException exception) {}
+                            enemyX += 10;
+                            repaint();
+                            try {Thread.sleep(100);} catch (InterruptedException exception) {}
+
+                            for (int i = 0; i < 3; i++) {
+                                x += 10;
+                                repaint();
+                                try {Thread.sleep(50);} catch (InterruptedException exception) {}
+                                x -= 20;
+                                repaint();
+                                try {Thread.sleep(50);} catch (InterruptedException exception) {}
+                                x += 10;
+                            }
+                            repaint();
+                            break;
+                        default:
+                            System.out.println("UnHandled Event in UI->BattleScreen: " + e.type);
+                }});
+                //TODO SKILL CHANGE DEAD AND MORE
+
 
             }
             
             public void paint(Graphics g) {
                 super.paint(g);
-                g.drawImage(POKEMON_IMG[1][2], 0, 160, 240, 240, null);
-                g.drawImage(POKEMON_IMG[151][0], 360, 0, 240, 240, null);
+                g.drawImage(POKEMON_IMG[1][2], x, y, 240, 240, null);
+                g.drawImage(POKEMON_IMG[151][0], enemyX, enemyY, 240, 240, null);
             }
         }
 
@@ -181,9 +228,14 @@ public class UI extends JFrame{
 
     public static void main(String args[]) {  // Entry point
         GameManager gm = GameManager.getInstance();
-        UI ui = new UI();
+        new UI();
         gm.raiseEvent(Event.newTextEvent("야생의 뮤가 나타났다!\n무엇을 해야할까?"));
-        gm.raiseEvent(Event.newTextEvent("읽기 속도 테스트."));
-        gm.raiseEvent(Event.newTextEvent("동해물과 백두산이 마르고 닳도록 하느님이 보우하사 우리나라 만세\n무궁화 삼천리 화려강산 대한 사람 대한으로 길이 보전하세\n남산 위에 저 소나무 철갑을 두른 듯 바람서리 불변함은 우리 기상 일세\n무궁화 삼천리 화려강산 대한 사람 대한으로 길이 보전하세\n가을 하늘 공활한데 높고 구름 없이 밝은 달은 우리 가슴 일편단심 일세\n무궁화 삼천리 화려강산 대한 사람 대한으로 길이 보전하세\n이 기상과 이맘으로 충성을 다하여 괴로우나 즐거우나 나라 사랑하세\n무궁화 삼천리 화려강산 대한 사람 대한으로 길이 보전하세\n"));
+        gm.raiseEvent(Event.newAttackEvent(500));
+        gm.raiseEvent(Event.newTextEvent("ABC"));
+        gm.raiseEvent(Event.newEnemyAttackEvent(500));
+        gm.raiseEvent(Event.newTextEvent("DEF"));
+        gm.raiseEvent(Event.newAttackEvent(500));
+        gm.raiseEvent(Event.newTextEvent("GHK"));
+        gm.raiseEvent(Event.newEnemyAttackEvent(500));
     }
 }

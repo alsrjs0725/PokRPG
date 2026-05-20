@@ -10,14 +10,15 @@ public class GameManager {
 
     // save Variables
     List<Pokemon> box = new ArrayList<>();
-    Pokemon pokemon[] = new Pokemon[8];
-    int selectedPokemonIdx = 0;
+    Pokemon pokemon[] = new Pokemon[6];
     
     // runtime Variable (= Don't need to save)
+    int selectedPokemonIdx = 0;
     Map<Integer, Consumer<Event>> eventListeners = new HashMap<>();
     Boolean runningEventLoop = false;
     Boolean autoGameing = false;
     List<Event> eventList = new ArrayList<>();
+    Pokemon enemyPokemon = null;
     
     private GameManager() {
         load(DEFAULT_SAVE_PATH);
@@ -33,6 +34,18 @@ public class GameManager {
     }
 
     public void load(String path) {
+        // TODO This is Test Code.
+        pokemon[0] = new Pokemon(151, 1, 1, 1, 1, new Pokemon.SKILL[2]);
+        pokemon[1] = new Pokemon(1, 1, 1, 1, 1, new Pokemon.SKILL[2]);
+        enemyPokemon = new Pokemon(151, 1, 1, 1, 1, new Pokemon.SKILL[2]);
+        
+        
+        
+        for (int i = 0; i < 6; i++) {
+            if (pokemon[i].getHealth() == 0) continue;
+            selectedPokemonIdx = i;
+            break;
+        }
         //TODO
     }
 
@@ -42,6 +55,7 @@ public class GameManager {
         runningEventLoop = true;
         while (!eventList.isEmpty()) {
             e = eventList.removeLast();
+            System.out.println("Event Raised! Event type: " + e.type);
             for (Consumer<Event> el : eventListeners.values()) {
                 el.accept(e);
             }

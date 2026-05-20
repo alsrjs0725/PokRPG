@@ -285,14 +285,21 @@ public class Pokemon {
     };
 
     
-
-    private int id, level, health, maxHealth, individualValue, xp;
+    // From Save Variables
+    private int id, level, health, individualValue, xp;
     private SKILL skill[];  // MAX 4
-    private TYPE type[];   // MAX
+
+    // Non From Save Variables
+    private int maxHealth;
+    private TYPE type[];   // MAX 2
     public String name;
 
-    Pokemon(int id) {
+
+
+    Pokemon(int id, int level, int health, int individualValue, int xp, SKILL skill[]) {
         this.id = id;
+        this.health = health;
+
         type = POKEMON_TYPE_TABLE[id];
         name = NAME_TABLE[id];
     }

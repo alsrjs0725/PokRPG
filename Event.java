@@ -42,4 +42,18 @@ public class Event {
         e.text = text;
         return e;
     }
+
+    public static Event newAttackEvent(int damage) {
+        Event e = new Event();
+        e.type = Event.EVENT_TYPE.ATTACK;
+        e.damage = damage;
+        return e;
+    }
+
+    public static Event newEnemyAttackEvent(int damage) {
+        Event e = new Event();
+        e.type = Event.EVENT_TYPE.ENEMY_ATTACK;
+        e.damage = damage;
+        return e;
+    }
 }
