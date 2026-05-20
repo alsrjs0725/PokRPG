@@ -1,8 +1,19 @@
+import java.util.function.Consumer;
+
 class Item {
     int id;
-    public static String NAME_TABLE[] = {
-        "TestItem",
+    String name;
+    Consumer<Pokemon> use;
+    
+    public static Item ITEM_TABLE[] = {
+
     };
+    
+    Item(String name, int id, Consumer<Pokemon> use) {
+        this.name = name;
+        this.id = id;
+        this.use = use;
+    }
 
     void use() {
         Event e = new Event();

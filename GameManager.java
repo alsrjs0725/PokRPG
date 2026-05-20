@@ -1,4 +1,6 @@
 import java.util.ArrayList;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -17,7 +19,8 @@ public class GameManager {
     Map<Integer, Consumer<Event>> eventListeners = new HashMap<>();
     Boolean runningEventLoop = false;
     Boolean autoGameing = false;
-    List<Event> eventList = new ArrayList<>();
+    Deque<Event> eventList = new ArrayDeque<>();
+    List<Event> raisedEventList = null;
     Pokemon enemyPokemon = null;
     
     private GameManager() {
@@ -34,11 +37,11 @@ public class GameManager {
     }
 
     public void load(String path) {
-        // TODO This is Test Code.
+        // TODO remove test code
         pokemon[0] = new Pokemon(151, 1, 1, 1, 1, new Pokemon.SKILL[2]);
         pokemon[1] = new Pokemon(1, 1, 1, 1, 1, new Pokemon.SKILL[2]);
         enemyPokemon = new Pokemon(151, 1, 1, 1, 1, new Pokemon.SKILL[2]);
-        
+        // end test code
         
         
         for (int i = 0; i < 6; i++) {
@@ -49,19 +52,52 @@ public class GameManager {
         //TODO
     }
 
-    public void raiseEvent(Event e) {
-        eventList.add(e);
-        if (runningEventLoop) return;
-        runningEventLoop = true;
-        while (!eventList.isEmpty()) {
-            e = eventList.removeLast();
+    public void startLoop() {
+        Event e;
+        while (true) {
+            if (eventList.isEmpty()) {
+                try {
+                    Thread.sleep(10);
+                    continue;
+                } catch (InterruptedException e1) {
+
+                }
+            }
+            
+            e = eventList.removeFirst();
+            raisedEventList = new ArrayList<>();
             System.out.println("Event Raised! Event type: " + e.type);
             for (Consumer<Event> el : eventListeners.values()) {
                 el.accept(e);
             }
+
             // TODO GameManager 레벨에서 이벤트로 인해 처리해야 할 것 진행
+            switch(e.type) {
+                case Event.EVENT_TYPE.BATTLE_START:
+                    raiseEvent(Event.newTurnStartEvent());
+                    break;
+                case Event.EVENT_TYPE.ATTACK:
+                    enemyPokemon.setHealth(enemyPokemon.getHealth() - e.damage);
+                    raiseEvent(Event.newTextEvent(e.damage + "의 대미지를 입혔다!"));
+                    raiseEvent(Event.newTurnStartEvent());
+                    break;
+                default:
+                    System.out.println("Unhandled Event in GameManager: " + e.type);
+            }
+
+            for (int i = raisedEventList.size() - 1; i >= 0; i--) {
+                eventList.addFirst(raisedEventList.get(i));
+            }
+            raisedEventList = null;
         }
-        runningEventLoop = false;
+    }
+
+    public void raiseEvent(Event e) {
+        if (raisedEventList != null) {
+            raisedEventList.add(e);
+        } else {
+            eventList.addLast(e);
+        }
     }
 
     public Integer registEventListener(Consumer<Event> el) {

@@ -7,6 +7,8 @@ import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.Graphics;
 import java.awt.Point;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 
@@ -59,6 +61,10 @@ public class UI extends JFrame{
         LeftMenuBar leftMenuBar;
         TextBox textBox;
         BattleScreen battleScreen;
+
+        void sleep(long milisecond) {
+            try {Thread.sleep(milisecond);} catch (InterruptedException e) {}
+        }
         
         class LeftMenuBar extends JPanel {
             LeftMenuBar() {
@@ -71,9 +77,12 @@ public class UI extends JFrame{
         
         class TextBox extends JPanel {
             JLabel label[] = new JLabel[4];
+            JButton button[] = new JButton[4];
             Event nextEvent;
             TextBox() {
                 setLayout(null);
+
+                // label init
                 for (int i = 0; i < 4; i++) {
                     label[i] = new JLabel();
                     label[i].setFont(font);
@@ -82,17 +91,53 @@ public class UI extends JFrame{
                     add(label[i]);
                     label[i].setLocation(10, 5 + 55 * i);
                     label[i].setSize(700, 50);
-
                 }
+
+                // button init
+                button[0] = new JButton("공격");
+                button[1] = new JButton("스킬");
+                button[2] = new JButton("아이템");
+                button[3] = new JButton("교체");
+                for (int i = 0; i < 4; i++) {
+                    add(button[i]);
+                    button[i].setFont(font);
+                    button[i].setSize(334, 105);
+                    button[i].setLocation((i % 2 == 0)?5:345, (i / 2 == 0)?5:115);
+                }
+                hideInteractButton();
+                button[0].addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e){
+                        hideInteractButton();
+                        // TODO remove test code
+                        GameManager.getInstance().raiseEvent(Event.newAttackEvent(5));
+                        // test code end
+                    }
+                });
+                //TODO button listener
+                
+                // TextBox init
                 setSize(700, 225);
                 setLocation(0, 400);
                 setBackground(Color.WHITE);
                 setVisible(rootPaneCheckingEnabled);
+
+                // regist event handler
                 GameManager.getInstance().registEventListener((Event e) -> {
                     if (e.type == Event.EVENT_TYPE.TEXT) {
                         writeText(e.text);
+                    } else if (e.type == Event.EVENT_TYPE.TURN_START) {
+                        showInteractButton();
                     }
                 });
+            }
+
+            void showInteractButton() {
+                System.out.println("showINteractButtonCalled");
+                for (int i = 0; i < 4; i++)button[i].setVisible(true);
+            }
+
+            void hideInteractButton() {
+                for (int i = 0; i < 4; i++)button[i].setVisible(false);
             }
 
             void writeText(String s) {
@@ -124,17 +169,10 @@ public class UI extends JFrame{
                     }  // 전각 반각 구분
 
                     label[idx].setText(tmp);
-                    try {
-                        Thread.sleep(50);
-                    } catch (InterruptedException e) {
-
-                    }
+                    sleep(50);
                 }
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-
-                }
+                sleep(1000);
+                for (int i = 0; i < 4; i++) label[i].setVisible(false);
             }
         }
 
@@ -146,23 +184,23 @@ public class UI extends JFrame{
                 setBackground(Color.GRAY);
                 setVisible(rootPaneCheckingEnabled);
 
-                GameManager.getInstance().registEventListener((Event e) -> {  // ATTACK event 처리
+                GameManager.getInstance().registEventListener((Event e) -> {  // event 처리
                     switch (e.type) {
                         case Event.EVENT_TYPE.ATTACK:
                             x += 10;
                             repaint();
-                            try {Thread.sleep(100);} catch (InterruptedException exception) {}
+                            sleep(100);
                             x -= 10;
                             repaint();
-                            try {Thread.sleep(100);} catch (InterruptedException exception) {}
+                            sleep(100);
 
                             for (int i = 0; i < 3; i++) {
                                 enemyX += 10;
                                 repaint();
-                                try {Thread.sleep(50);} catch (InterruptedException exception) {}
+                                sleep(50);
                                 enemyX -= 20;
                                 repaint();
-                                try {Thread.sleep(50);} catch (InterruptedException exception) {}
+                                sleep(50);
                                 enemyX += 10;
                             }
                             repaint();
@@ -170,34 +208,39 @@ public class UI extends JFrame{
                         case Event.EVENT_TYPE.ENEMY_ATTACK:
                             enemyX -= 10;
                             repaint();
-                            try {Thread.sleep(100);} catch (InterruptedException exception) {}
+                            sleep(100);
                             enemyX += 10;
                             repaint();
-                            try {Thread.sleep(100);} catch (InterruptedException exception) {}
+                            sleep(100);
 
                             for (int i = 0; i < 3; i++) {
                                 x += 10;
                                 repaint();
-                                try {Thread.sleep(50);} catch (InterruptedException exception) {}
+                                sleep(50);
                                 x -= 20;
                                 repaint();
-                                try {Thread.sleep(50);} catch (InterruptedException exception) {}
+                                sleep(50);
                                 x += 10;
                             }
                             repaint();
                             break;
+                            // Below is doing nothing list
+                        case Event.EVENT_TYPE.TURN_START:
+                        case Event.EVENT_TYPE.TEXT:
+                        case Event.EVENT_TYPE.BATTLE_START: 
+                            break;
                         default:
                             System.out.println("UnHandled Event in UI->BattleScreen: " + e.type);
                 }});
-                //TODO SKILL CHANGE DEAD AND MORE
+                // TODO SKILL CHANGE DEAD AND MORE
 
 
             }
             
             public void paint(Graphics g) {
                 super.paint(g);
-                g.drawImage(POKEMON_IMG[1][2], x, y, 240, 240, null);
-                g.drawImage(POKEMON_IMG[151][0], enemyX, enemyY, 240, 240, null);
+                g.drawImage(POKEMON_IMG[GameManager.getInstance().pokemon[GameManager.getInstance().selectedPokemonIdx].id][2], x, y, 240, 240, null);
+                g.drawImage(POKEMON_IMG[GameManager.getInstance().enemyPokemon.id][0], enemyX, enemyY, 240, 240, null);
             }
         }
 
@@ -229,13 +272,10 @@ public class UI extends JFrame{
     public static void main(String args[]) {  // Entry point
         GameManager gm = GameManager.getInstance();
         new UI();
-        gm.raiseEvent(Event.newTextEvent("야생의 뮤가 나타났다!\n무엇을 해야할까?"));
-        gm.raiseEvent(Event.newAttackEvent(500));
-        gm.raiseEvent(Event.newTextEvent("ABC"));
-        gm.raiseEvent(Event.newEnemyAttackEvent(500));
-        gm.raiseEvent(Event.newTextEvent("DEF"));
-        gm.raiseEvent(Event.newAttackEvent(500));
-        gm.raiseEvent(Event.newTextEvent("GHK"));
-        gm.raiseEvent(Event.newEnemyAttackEvent(500));
+        // TODO remove test code
+        gm.raiseEvent(Event.newTextEvent("HELLO"));
+        gm.raiseEvent(Event.newTurnStartEvent());
+        // testcode end
+        gm.startLoop();
     }
 }

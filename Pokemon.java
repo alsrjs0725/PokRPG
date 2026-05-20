@@ -286,7 +286,8 @@ public class Pokemon {
 
     
     // From Save Variables
-    private int id, level, health, individualValue, xp;
+    public int id;
+    private int level, health, individualValue, xp;
     private SKILL skill[];  // MAX 4
 
     // Non From Save Variables
@@ -298,10 +299,18 @@ public class Pokemon {
 
     Pokemon(int id, int level, int health, int individualValue, int xp, SKILL skill[]) {
         this.id = id;
+        this.level = level;
         this.health = health;
+        this.individualValue = individualValue;
+        this.xp = xp;
+        this.skill = skill;
 
         type = POKEMON_TYPE_TABLE[id];
         name = NAME_TABLE[id];
+
+        // TODO Edit temp code
+        this.maxHealth = level * 15;
+        // temp code end
     }
 
     SKILL[] getPokemonSkill() { return skill.clone(); }

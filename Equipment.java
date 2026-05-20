@@ -6,26 +6,25 @@ import java.util.Arrays;
 public class Equipment{
     String name;
     Integer id, eventListenerRegistedID;
-    public static String NAME_TABLE[] = {
-        "TestEqluipment",
-    };
+    Consumer<Event> eventListener;
 
-    public static List<Consumer<Event>> EVENT_LISTENER_TABLE = new ArrayList<>(Arrays.asList(
-        (Event e) -> {
+    public static Equipment EQUIPMENT_TABLE[] = {
+        new Equipment("Test Equipment", 0, (Event e) -> {  // ID 0
             if (e.type == Event.EVENT_TYPE.ATTACK) e.damage = 9999999;
             if (e.type == Event.EVENT_TYPE.ENEMY_ATTACK) e.damage = 1;
-        }
-    ));
+        }),
+    };
 
 
-    Equipment(int id) {
+    Equipment(String name, int id, Consumer<Event> el) {
+        this.name = name;
         this.id = id;
-        this.name = NAME_TABLE[id];
+        this.eventListener = el;
     }
 
     public void activate() {
         if (eventListenerRegistedID != null) return; 
-        eventListenerRegistedID = GameManager.getInstance().registEventListener(EVENT_LISTENER_TABLE.get(id));
+        eventListenerRegistedID = GameManager.getInstance().registEventListener(eventListener);
     }
     
     public void deActivate() {

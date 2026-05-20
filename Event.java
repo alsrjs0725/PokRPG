@@ -56,4 +56,10 @@ public class Event {
         e.damage = damage;
         return e;
     }
+
+    public static Event newTurnStartEvent() {
+        Event e = new Event();
+        e.type = Event.EVENT_TYPE.TURN_START;
+        return e;
+    }
 }
