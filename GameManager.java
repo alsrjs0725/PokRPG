@@ -13,9 +13,11 @@ public class GameManager {
     // save Variables
     List<Pokemon> box = new ArrayList<>();
     Pokemon pokemon[] = new Pokemon[6];
+    int itemCount[];
+    int Equipment[];
     
     // runtime Variable (= Don't need to save)
-    int selectedPokemonIdx = 0;
+    int selectedPokemonIdx = 0, pp = 0;
     Map<Integer, Consumer<Event>> eventListeners = new HashMap<>();
     Boolean runningEventLoop = false;
     Boolean autoGameing = false;
@@ -38,9 +40,9 @@ public class GameManager {
 
     public void load(String path) {
         // TODO remove test code
-        pokemon[0] = new Pokemon(151, 1, 1, 1, 1, new Pokemon.SKILL[2]);
-        pokemon[1] = new Pokemon(1, 1, 1, 1, 1, new Pokemon.SKILL[2]);
-        enemyPokemon = new Pokemon(151, 1, 1, 1, 1, new Pokemon.SKILL[2]);
+        pokemon[0] = new Pokemon(151, 1, 1, 1, 1, new Skill[2], 0);
+        pokemon[1] = new Pokemon(1, 1, 1, 1, 1, new Skill[2], 0);
+        enemyPokemon = new Pokemon(151, 1, 1, 1, 1, new Skill[2], 0);
         // end test code
         
         

@@ -6,7 +6,6 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.Graphics;
-import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
@@ -185,7 +184,7 @@ public class UI extends JFrame{
                 setVisible(rootPaneCheckingEnabled);
 
                 GameManager.getInstance().registEventListener((Event e) -> {  // event 처리
-                    switch (e.type) {
+                    switch (e.type) { // TODO SKILL CHANGE DEAD AND MORE
                         case Event.EVENT_TYPE.ATTACK:
                             x += 10;
                             repaint();
@@ -232,9 +231,6 @@ public class UI extends JFrame{
                         default:
                             System.out.println("UnHandled Event in UI->BattleScreen: " + e.type);
                 }});
-                // TODO SKILL CHANGE DEAD AND MORE
-
-
             }
             
             public void paint(Graphics g) {

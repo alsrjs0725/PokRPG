@@ -1,11 +1,12 @@
 public class Event {
     enum EVENT_TYPE {       // 사용하는 변수 목록(이벤트 발생시 변경해야 하는 변수 목록, 나머지는 null), 
                             // GameManager에서 raise event 이전에 유효한 변수가 다 있는지 CHECK
+        NOTHING,            //
         BATTLE_START,       // pokemon(enemy)
         TURN_START,         //
         ATTACK,             // damage
         SKILL,              // idx (=skill idx)
-        ITEM,               // item, idx(=selectedPokemonIdx)
+        ITEM,               // item, pokemon(selected pokemon)
         CHANGE,             // slotIdx
         DEAD,               // slotIdx
         TURN_END,           // 

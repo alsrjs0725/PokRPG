@@ -1,7 +1,4 @@
-import java.util.List;
 import java.util.function.Consumer;
-import java.util.ArrayList;
-import java.util.Arrays;
 
 public class Equipment{
     String name;

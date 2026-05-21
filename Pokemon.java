@@ -21,11 +21,6 @@ public class Pokemon {
         FAIRY
     };
 
-    public enum SKILL {
-        EMPTY,
-
-    };
-
     public static final String NAME_TABLE[] = {
         "",
         "이상해씨", "이상해풀", "이상해꽃",
@@ -288,7 +283,8 @@ public class Pokemon {
     // From Save Variables
     public int id;
     private int level, health, individualValue, xp;
-    private SKILL skill[];  // MAX 4
+    private Skill skill[];  // MAX 4
+    private Equipment Equiped;
 
     // Non From Save Variables
     private int maxHealth;
@@ -297,7 +293,7 @@ public class Pokemon {
 
 
 
-    Pokemon(int id, int level, int health, int individualValue, int xp, SKILL skill[]) {
+    Pokemon(int id, int level, int health, int individualValue, int xp, Skill skill[], int equiped_id) {
         this.id = id;
         this.level = level;
         this.health = health;
@@ -313,7 +309,7 @@ public class Pokemon {
         // temp code end
     }
 
-    SKILL[] getPokemonSkill() { return skill.clone(); }
+    Skill[] getPokemonSkill() { return skill.clone(); }
     TYPE[] getPokemonType() { return type.clone(); }
     int getMaxHealth() { return maxHealth; }
     void setMaxHealth(int h) { maxHealth = h; }
