@@ -6,20 +6,15 @@ class Item {
     Consumer<Pokemon> use;
     
     public static Item ITEM_TABLE[] = {
-
+        new Item("TestItem", 0, (Pokemon p) -> {
+            p.setHealth(p.getMaxHealth());
+        }),
     };
     
     Item(String name, int id, Consumer<Pokemon> use) {
         this.name = name;
         this.id = id;
         this.use = use;
-    }
-
-    void use() {
-        Event e = new Event();
-        e.type = Event.EVENT_TYPE.ITEM;
-        e.item = this;
-        GameManager.getInstance().raiseEvent(e);
     }
 }
 
