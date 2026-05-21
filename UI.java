@@ -269,6 +269,7 @@ public class UI extends JFrame{
         GameManager gm = GameManager.getInstance();
         new UI();
         // TODO remove test code
+        Event.raiseAllEvent();
         gm.raiseEvent(Event.newTextEvent("HELLO"));
         gm.raiseEvent(Event.newTurnStartEvent());
         // testcode end

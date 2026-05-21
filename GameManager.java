@@ -24,6 +24,7 @@ public class GameManager {
     Deque<Event> eventList = new ArrayDeque<>();
     List<Event> raisedEventList = null;
     Pokemon enemyPokemon = null;
+    Status enemyStatus = Status.get(0), myStatus = Status.get(0);
     
     private GameManager() {
         load(DEFAULT_SAVE_PATH);
@@ -82,6 +83,13 @@ public class GameManager {
                     enemyPokemon.setHealth(enemyPokemon.getHealth() - e.damage);
                     raiseEvent(Event.newTextEvent(e.damage + "의 대미지를 입혔다!"));
                     raiseEvent(Event.newTurnStartEvent());
+                    break;
+                case Event.EVENT_TYPE.CLEAR_EVENT_QUEUE:
+                    eventList.clear();
+                    break;
+                case Event.EVENT_TYPE.TURN_START:
+                case Event.EVENT_TYPE.NOTHING:
+                case Event.EVENT_TYPE.TEXT:
                     break;
                 default:
                     System.out.println("Unhandled Event in GameManager: " + e.type);

@@ -1,11 +1,11 @@
 import java.util.function.BiConsumer;
 
-public class Skill {
+public class Skill implements Cloneable{
     int id, pp;
     String name;
     BiConsumer<Pokemon, Pokemon> use;
 
-    public static Skill SKILL_TABLE[] = {
+    private static Skill SKILL_TABLE[] = {
         new Skill("NOTHING", 0, (Pokemon from, Pokemon to) -> {
             // Do Nothing;
         }, 0),
@@ -19,9 +19,19 @@ public class Skill {
         this.pp = pp;
     }
 
+    public Object clone() {
+        Object obj = null;
+        try {
+            obj = super.clone();
+        } catch (CloneNotSupportedException e) {
+            
+        }
+        return obj;
+    }
+
     public static Skill get(int id) {
         for (int i = 0; i < SKILL_TABLE.length; i++) {
-            if (SKILL_TABLE[i].id == id) return SKILL_TABLE[i];
+            if (SKILL_TABLE[i].id == id) return (Skill) SKILL_TABLE[i].clone();
         } return null;
     }
 }

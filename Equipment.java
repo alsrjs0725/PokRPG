@@ -1,13 +1,16 @@
 import java.util.function.Consumer;
 
-public class Equipment{
+public class Equipment implements Cloneable{
     String name;
     Integer id, eventListenerRegistedID;
     Consumer<Event> eventListener;
 
     public static Equipment EQUIPMENT_TABLE[] = {
-        new Equipment("Test Equipment", 0, (Event e) -> {  // ID 0
-            if (e.type == Event.EVENT_TYPE.ATTACK) e.damage = 9999999;
+        new Equipment("NONE", 0, (Event e) -> {  // ID 0
+
+        }),
+        new Equipment("DEBUG EQUIPMENT", 1, (Event e) -> {  // ID 1
+            if (e.type == Event.EVENT_TYPE.ATTACK) e.damage = 9999;
             if (e.type == Event.EVENT_TYPE.ENEMY_ATTACK) e.damage = 1;
         }),
     };
@@ -30,7 +33,21 @@ public class Equipment{
         eventListenerRegistedID = null;
     }
 
+    public Object clone() {
+        Object obj = null;
+        try {
+            obj = super.clone();
+        } catch (CloneNotSupportedException e) {
+            
+        }
+        return obj;
+    }
 
+    public Equipment get(int id) {
+        for (int i = 0; i < EQUIPMENT_TABLE.length; i++) {
+            if (EQUIPMENT_TABLE[i].id == id) return (Equipment) EQUIPMENT_TABLE[i].clone();
+        } return null;
+    }
 
 }
 

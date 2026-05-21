@@ -1,6 +1,6 @@
 import java.util.function.Consumer;
 
-class Item {
+class Item implements Cloneable{
     int id;
     String name;
     Consumer<Pokemon> use;
@@ -9,7 +9,7 @@ class Item {
         new Item("NONE", 0, (Pokemon p) -> {
             // nothing
         }),
-        new Item("TEST ITEM", 1, (Pokemon p) -> {
+        new Item("DEBUG ITEM", 1, (Pokemon p) -> {
             p.setHealth(p.getHealth());
         }),
     };
@@ -20,9 +20,19 @@ class Item {
         this.use = use;
     }
 
+    public Object clone() {
+        Object obj = null;
+        try {
+            obj = super.clone();
+        } catch (CloneNotSupportedException e) {
+            
+        }
+        return obj;
+    }
+
     public static Item get(int id) { 
         for (int i = 0; i < ITEM_TABLE.length; i++) {
-            if (ITEM_TABLE[i].id == id) return ITEM_TABLE[i];
+            if (ITEM_TABLE[i].id == id) return (Item) ITEM_TABLE[i].clone();
         } return null;
     }
 
