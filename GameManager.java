@@ -41,9 +41,9 @@ public class GameManager {
 
     public void load(String path) {
         // TODO remove test code
-        pokemon[0] = new Pokemon(151, 1, 1, 1, 1, new Skill[2], 0);
-        pokemon[1] = new Pokemon(1, 1, 1, 1, 1, new Skill[2], 0);
-        enemyPokemon = new Pokemon(151, 1, 1, 1, 1, new Skill[2], 0);
+        pokemon[0] = Pokemon.generate(151, 100);
+        pokemon[1] = Pokemon.generate(1, 10);
+        enemyPokemon = Pokemon.generate(151, 5);
         // end test code
         
         
@@ -81,6 +81,7 @@ public class GameManager {
                     break;
                 case Event.EVENT_TYPE.ATTACK:
                     enemyPokemon.setHealth(enemyPokemon.getHealth() - e.damage);
+                    System.out.println(e.damage);
                     raiseEvent(Event.newTextEvent(e.damage + "의 대미지를 입혔다!"));
                     raiseEvent(Event.newTurnStartEvent());
                     break;

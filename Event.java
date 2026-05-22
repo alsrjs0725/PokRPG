@@ -161,7 +161,7 @@ public class Event {
         GameManager gm = GameManager.getInstance();
 
         gm.raiseEvent(Event.newNothingEvent());
-        gm.raiseEvent(Event.newBattleStartEvent(new Pokemon(151, 1, 1, 1, 1, new Skill[2], 0)));
+        gm.raiseEvent(Event.newBattleStartEvent(Pokemon.generate(151, 3)));
         gm.raiseEvent(Event.newTurnStartEvent());
         gm.raiseEvent(Event.newAttackEvent(3));
         gm.raiseEvent(Event.newSkillEvent(Skill.get(1)));
@@ -174,9 +174,9 @@ public class Event {
         gm.raiseEvent(Event.newEnemySkillEvent(Skill.get(0)));
         gm.raiseEvent(Event.newEnemyTurnEndEvent());
         gm.raiseEvent(Event.newEnemyDeadEvent());
-        gm.raiseEvent(Event.newBattleEndEvent(100));
+        gm.raiseEvent(Event.newBattleEndEvent(10000));
         gm.raiseEvent(Event.newInBoxEvent(1));
-        gm.raiseEvent(Event.newOutBoxEvent(new Pokemon(151, 1, 1, 1, 1, new Skill[2], 0), 2));
+        gm.raiseEvent(Event.newOutBoxEvent(Pokemon.generate(151, 3), 2));
         gm.raiseEvent(Event.newTextEvent("HELLO"));
         gm.raiseEvent(Event.newClearEventQueueEvent());
     }

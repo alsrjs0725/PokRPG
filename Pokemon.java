@@ -1,3 +1,5 @@
+import java.util.Random;
+
 public class Pokemon {
     public enum TYPE {
         EMPTY,
@@ -8,7 +10,7 @@ public class Pokemon {
         GRASS,
         ICE,
         FIGHTING,
-        POISON,
+        POISON, 
         GROUND,
         FLYING,
         PSYCHIC,
@@ -279,41 +281,95 @@ public class Pokemon {
         /* FAIRY */   {1,1,0.5,1,1,1,1,2,0.5,1,1,1,1,1,1,2,2,0.5,1}
     };
 
+    public static final int[] HEALTH_BASE_STAT_VALUE_TABLE = {
+         0,  5,  6,  9,  4,  6,  9,  4,  6,  9,  5,  5,  6,  4,  5,  7,
+         4,  7,  9,  3,  6,  4,  7,  3,  6,  3,  6,  5,  8,  6,  8, 10,
+         5,  7,  9,  8, 11,  4,  8, 14, 17,  4,  8,  5,  6,  8,  3,  6,
+         6,  8,  0,  3,  4,  7,  5,  9,  4,  7,  6, 10,  4,  7, 10,  2,
+         4,  6,  8,  9, 10,  5,  7,  9,  4,  9,  4,  6,  9,  5,  7, 10,
+        11,  2,  5,  5,  3,  6,  7, 10,  9, 12,  3,  5,  3,  5,  6,  3,
+         6, 10,  3,  6,  4,  6,  6, 11,  5,  6,  5,  5, 10,  4,  7,  9,
+        12, 31,  7, 12,  3,  6,  5,  9,  3,  6,  4,  8,  7,  7,  7,  7,
+         8,  1, 11, 16,  5,  6, 16,  7,  7,  7,  3,  8,  3,  6,  9, 19,
+        10, 10, 10,  4,  7, 10, 12, 12
+    };
+
+    public static final int[] DAMAGE_BASE_STAT_VALUE_TABLE = {
+         0, 11, 14, 19, 11, 14, 19, 10, 14, 19,  6,  4, 10,  7,  5, 20,
+        10, 13, 18, 12, 18, 13, 20, 13, 22, 12, 20, 17, 23, 10, 14, 21,
+        12, 16, 23, 10, 16,  9, 17, 10, 16, 10, 18, 11, 14, 18, 16, 22,
+        12, 14, 12, 23, 10, 16, 11, 19, 18, 24, 16, 25, 11, 14, 22,  4,
+         7, 11, 18, 23, 30, 17, 20, 24,  8, 16, 18, 22, 28, 19, 23, 14,
+        17,  7, 13, 20, 19, 25, 10, 16, 18, 24, 14, 22,  7, 11, 14, 10,
+        10, 16, 24, 30,  6, 11,  8, 22, 11, 18, 28, 24, 12, 14, 20, 19,
+        30,  0, 12, 22,  8, 14, 15, 21, 10, 17, 10, 25, 11, 19, 22, 29,
+        23,  1, 29, 19, 10, 12, 14, 14, 30, 13,  8, 13, 18, 26, 24, 25,
+        19, 20, 23, 14, 19, 31, 25, 23
+    };
     
     // From Save Variables
-    public int id;
-    private int level, health, individualValue, xp;
+    public final int id;
+    private int health, individualValue, xp;
     private Skill skill[];  // MAX 4
-    private Equipment Equiped;
+    private Equipment equiped;
 
     // Non From Save Variables
-    private int maxHealth;
     private TYPE type[];   // MAX 2
-    public String name;
+    public final String name;
 
-
-
-    Pokemon(int id, int level, int health, int individualValue, int xp, Skill skill[], int equiped_id) {
+    Pokemon(int id, int health, int individualValue, int xp, Skill skill[], Equipment equiped) {
         this.id = id;
-        this.level = level;
         this.health = health;
-        this.individualValue = individualValue;
+        this.individualValue = Math.abs(individualValue);
         this.xp = xp;
         this.skill = skill;
+        this.equiped = equiped;
 
         type = POKEMON_TYPE_TABLE[id];
         name = NAME_TABLE[id];
-
-        // TODO Edit temp code
-        this.maxHealth = level * 15;
-        // temp code end
     }
 
-    Skill[] getPokemonSkill() { return skill.clone(); }
+
+    Skill getPokemonSkill(int idx) {return (Skill) skill[idx].clone(); }
     TYPE[] getPokemonType() { return type.clone(); }
-    int getMaxHealth() { return maxHealth; }
-    void setMaxHealth(int h) { maxHealth = h; }
+    int getMaxHealth() { return (2 * getHBSValue() + getHIVValue()) * getLevel() / 7 + 5 + getLevel();}
     int getHealth() { return health; }
-    void setHealth(int health) { this.health = Math.min(maxHealth, Math.max(0, health)); }
+    void setHealth(int health) { this.health = Math.min(getMaxHealth(), Math.max(0, health)); }
+    int getXp() { return xp; }
+    void setXp(int xp) {
+        int prvLv = getLevel();
+        this.xp = xp;
+        if (getLevel() > prvLv) {
+            GameManager.getInstance().raiseEvent(Event.newTextEvent(name + "의 레벨이 올랐다!\n" + prvLv + " -> " + getLevel()));
+        }
+    }
+    int getLevel() {return ((int) Math.pow(xp, 0.4)) + 1;}
+    void setLevel(int level) {this.xp = (int) Math.pow(level - 1, 2.5);}
+    int getHBSValue() { return HEALTH_BASE_STAT_VALUE_TABLE[id]; }  // Health BaseStat Value
+    int getDBSValue() { return DAMAGE_BASE_STAT_VALUE_TABLE[id]; }  // Damage BaseStat Value
+    int getHIVValue() { return individualValue % 32; }  // Health BaseStat Value
+    int getDIVValue() { return individualValue / 32 % 32; }  // Damage BaseStat Value
+    int getAttackDamage() { return ((2 * getDBSValue() + getDIVValue()) * getLevel() / 100  + getLevel()) / 3 + 5; }
+
+    /**
+     * 포켓몬의 장착 아이템을 e로 변경, 착용하고 있는 아이템을 반환.
+     * @param e 장착할 아이템
+     * @return 포켓몬이 원래 장착하고 있던 Equipment
+     */
+    Equipment changeEquipment(Equipment e) {
+        Equipment rtn = equiped;
+        equiped = e;
+        return rtn;
+    }
+
+    static Pokemon generate(int id, int level) {
+        Random rand = new Random();
+        Pokemon p = new Pokemon(id, 1, rand.nextInt(), 0, new Skill[4], Equipment.get(0));
+        p.setLevel(level);
+        p.setHealth(p.getMaxHealth());
+        for (int i = 0; i < 4; i++) p.skill[i] = Skill.get(0);
+        // TODO SKill Add
+        return p;
+    }
 
 }

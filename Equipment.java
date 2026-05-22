@@ -43,7 +43,7 @@ public class Equipment implements Cloneable{
         return obj;
     }
 
-    public Equipment get(int id) {
+    public static Equipment get(int id) {
         for (int i = 0; i < EQUIPMENT_TABLE.length; i++) {
             if (EQUIPMENT_TABLE[i].id == id) return (Equipment) EQUIPMENT_TABLE[i].clone();
         } return null;
