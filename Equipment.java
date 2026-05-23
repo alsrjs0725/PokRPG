@@ -1,35 +1,36 @@
 import java.util.function.Consumer;
 
 public class Equipment implements Cloneable{
-    String name;
+    String name, description;
     Integer id, eventListenerRegistedID;
     Consumer<Event> eventListener;
 
     public static Equipment EQUIPMENT_TABLE[] = {
-        new Equipment("NONE", 0, (Event e) -> {  // ID 0
+        new Equipment("NONE", "", 0, (Event e) -> {  // ID 0
 
         }),
-        new Equipment("DEBUG EQUIPMENT", 1, (Event e) -> {  // ID 1
+        new Equipment("DEBUG EQUIPMENT", "", 1, (Event e) -> {  // ID 1
             if (e.type == Event.EVENT_TYPE.ATTACK) e.damage = 9999;
             if (e.type == Event.EVENT_TYPE.ENEMY_ATTACK) e.damage = 1;
         }),
     };
 
 
-    Equipment(String name, int id, Consumer<Event> el) {
+    Equipment(String name, String description, int id, Consumer<Event> el) {
         this.name = name;
+        this.description = description;
         this.id = id;
         this.eventListener = el;
     }
 
     public void activate() {
         if (eventListenerRegistedID != null) return; 
-        eventListenerRegistedID = GameManager.getInstance().registEventListener(eventListener);
+        eventListenerRegistedID = GameManager.registEventListener(eventListener);
     }
     
     public void deActivate() {
         if (eventListenerRegistedID == null) return;
-        GameManager.getInstance().unRegistEventListener(eventListenerRegistedID);
+        GameManager.unRegistEventListener(eventListenerRegistedID);
         eventListenerRegistedID = null;
     }
 

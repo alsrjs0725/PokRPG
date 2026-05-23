@@ -158,26 +158,24 @@ public class Event {
     }
 
     public static void raiseAllEvent() {
-        GameManager gm = GameManager.getInstance();
-
-        gm.raiseEvent(Event.newNothingEvent());
-        gm.raiseEvent(Event.newBattleStartEvent(Pokemon.generate(151, 3)));
-        gm.raiseEvent(Event.newTurnStartEvent());
-        gm.raiseEvent(Event.newAttackEvent(3));
-        gm.raiseEvent(Event.newSkillEvent(Skill.get(1)));
-        gm.raiseEvent(Event.newItemEvent(Item.get(0), gm.pokemon[gm.selectedPokemonIdx]));
-        gm.raiseEvent(Event.newChangeEvent(1));
-        gm.raiseEvent(Event.newDeadEvent());
-        gm.raiseEvent(Event.newTurnEndEvent());
-        gm.raiseEvent(Event.newEnemyTurnStartEvent());
-        gm.raiseEvent(Event.newEnemyAttackEvent(3));
-        gm.raiseEvent(Event.newEnemySkillEvent(Skill.get(0)));
-        gm.raiseEvent(Event.newEnemyTurnEndEvent());
-        gm.raiseEvent(Event.newEnemyDeadEvent());
-        gm.raiseEvent(Event.newBattleEndEvent(10000));
-        gm.raiseEvent(Event.newInBoxEvent(1));
-        gm.raiseEvent(Event.newOutBoxEvent(Pokemon.generate(151, 3), 2));
-        gm.raiseEvent(Event.newTextEvent("HELLO"));
-        gm.raiseEvent(Event.newClearEventQueueEvent());
+        GameManager.raiseEvent(Event.newNothingEvent());
+        GameManager.raiseEvent(Event.newBattleStartEvent(Pokemon.generate(151, 3)));
+        GameManager.raiseEvent(Event.newTurnStartEvent());
+        GameManager.raiseEvent(Event.newAttackEvent(3));
+        GameManager.raiseEvent(Event.newSkillEvent(Skill.get(1)));
+        GameManager.raiseEvent(Event.newItemEvent(Item.get(0), GameManager.getCurrentPokemon()));
+        GameManager.raiseEvent(Event.newChangeEvent(1));
+        GameManager.raiseEvent(Event.newDeadEvent());
+        GameManager.raiseEvent(Event.newTurnEndEvent());
+        GameManager.raiseEvent(Event.newEnemyTurnStartEvent());
+        GameManager.raiseEvent(Event.newEnemyAttackEvent(3));
+        GameManager.raiseEvent(Event.newEnemySkillEvent(Skill.get(0)));
+        GameManager.raiseEvent(Event.newEnemyTurnEndEvent());
+        GameManager.raiseEvent(Event.newEnemyDeadEvent());
+        GameManager.raiseEvent(Event.newBattleEndEvent(10000));
+        GameManager.raiseEvent(Event.newInBoxEvent(1));
+        GameManager.raiseEvent(Event.newOutBoxEvent(Pokemon.generate(151, 3), 2));
+        GameManager.raiseEvent(Event.newTextEvent("HELLO"));
+        GameManager.raiseEvent(Event.newClearEventQueueEvent());
     }
 }

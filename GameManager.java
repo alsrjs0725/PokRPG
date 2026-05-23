@@ -88,6 +88,9 @@ public class GameManager {
                 case Event.EVENT_TYPE.CLEAR_EVENT_QUEUE:
                     eventList.clear();
                     break;
+                case Event.EVENT_TYPE.ITEM:
+                    e.item.use.accept(e.pokemon);
+                    break;
                 case Event.EVENT_TYPE.TURN_START:
                 case Event.EVENT_TYPE.NOTHING:
                 case Event.EVENT_TYPE.TEXT:
@@ -103,23 +106,31 @@ public class GameManager {
         }
     }
 
-    public void raiseEvent(Event e) {
-        if (raisedEventList != null) {
-            raisedEventList.add(e);
+    public static void raiseEvent(Event e) {
+        GameManager gm = getInstance();
+        if (gm.raisedEventList != null) {
+            gm.raisedEventList.add(e);
         } else {
-            eventList.addLast(e);
+            gm.eventList.addLast(e);
         }
     }
 
-    public Integer registEventListener(Consumer<Event> el) {
+    public static Integer registEventListener(Consumer<Event> el) {
+        GameManager gm = getInstance();
         Integer idx = 0;
-        while (eventListeners.containsKey(idx)) idx++;
-        eventListeners.put(idx, el);
+        while (gm.eventListeners.containsKey(idx)) idx++;
+        gm.eventListeners.put(idx, el);
         return idx;
     }
 
-    public void unRegistEventListener(Integer idx) {
-        if (eventListeners.containsKey(idx)) eventListeners.remove(idx);
+    public static void unRegistEventListener(Integer idx) {
+        GameManager gm = getInstance();
+        if (gm.eventListeners.containsKey(idx)) gm.eventListeners.remove(idx);
+    }
+    
+    public static Pokemon getCurrentPokemon() {
+        GameManager gm = getInstance();
+        return gm.pokemon[gm.selectedPokemonIdx];
     }
 }
 

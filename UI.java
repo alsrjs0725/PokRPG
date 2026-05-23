@@ -153,9 +153,8 @@ public class UI extends JFrame{
                     // TODO BUTTON EVENT LISTENER
                     button[0].addActionListener(new ActionListener() {
                         public void actionPerformed(ActionEvent e){
-                            GameManager gm = GameManager.getInstance();
                             setVisible(false);
-                            gm.raiseEvent(Event.newAttackEvent(gm.pokemon[gm.selectedPokemonIdx].getAttackDamage()));
+                            GameManager.raiseEvent(Event.newAttackEvent(GameManager.getCurrentPokemon().getAttackDamage()));
                         }
                     });
                 }
@@ -178,7 +177,7 @@ public class UI extends JFrame{
                 setVisible(rootPaneCheckingEnabled);
 
                 // regist event handler
-                GameManager.getInstance().registEventListener((Event e) -> {
+                GameManager.registEventListener((Event e) -> {
                     if (e.type == Event.EVENT_TYPE.TEXT) {
                         hideAllFrame();
                         lp.setVisible(true);
@@ -204,7 +203,7 @@ public class UI extends JFrame{
                 setBackground(Color.GRAY);
                 setVisible(rootPaneCheckingEnabled);
 
-                GameManager.getInstance().registEventListener((Event e) -> {  // event 처리
+                GameManager.registEventListener((Event e) -> {  // event 처리
                     switch (e.type) { // TODO SKILL CHANGE DEAD AND MORE
                         case Event.EVENT_TYPE.ATTACK:
                             x += 10;

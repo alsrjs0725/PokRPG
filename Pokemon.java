@@ -340,7 +340,7 @@ public class Pokemon {
         int prvLv = getLevel();
         this.xp = xp;
         if (getLevel() > prvLv) {
-            GameManager.getInstance().raiseEvent(Event.newTextEvent(name + "의 레벨이 올랐다!\n" + prvLv + " -> " + getLevel()));
+            GameManager.raiseEvent(Event.newTextEvent(name + "의 레벨이 올랐다!\n" + prvLv + " -> " + getLevel()));
         }
     }
     int getLevel() {return ((int) Math.pow(xp, 0.4)) + 1;}
