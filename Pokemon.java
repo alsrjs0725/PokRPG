@@ -316,6 +316,7 @@ public class Pokemon {
     // Non From Save Variables
     private TYPE type[];   // MAX 2
     public final String name;
+    int pp = 0;
 
     Pokemon(int id, int health, int individualValue, int xp, Skill skill[], Equipment equiped) {
         this.id = id;

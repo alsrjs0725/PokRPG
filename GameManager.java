@@ -8,15 +8,15 @@ import java.util.HashMap;
 
 public class GameManager {
     private static GameManager gm;
-    private static final String DEFAULT_SAVE_PATH = ".\\save.json";
+    private static final String SAVE_FILE = "./save.json";
 
     // save Variables
     List<Pokemon> box = new ArrayList<>();
     Pokemon pokemon[] = new Pokemon[6];
-    int itemCount[];
-    int Equipment[];
+    HashMap<Integer, Integer> itemCount = new HashMap<>();
+    HashMap<Integer, Integer> equipmentCount = new HashMap<>();
     
-    // runtime Variable (= Don't need to save)
+    // runtime Variables (= Don't need to save)
     int selectedPokemonIdx = 0, pp = 0;
     Map<Integer, Consumer<Event>> eventListeners = new HashMap<>();
     Boolean runningEventLoop = false;
@@ -26,8 +26,9 @@ public class GameManager {
     Pokemon enemyPokemon = null;
     Status enemyStatus = Status.get(0), myStatus = Status.get(0);
     
+    
     private GameManager() {
-        load(DEFAULT_SAVE_PATH);
+        load();
     }
 
     public static GameManager getInstance() {
@@ -35,14 +36,15 @@ public class GameManager {
         return gm;
     }
 
-    public void save(String path) {
+    public void save() {
         // TODO
     }
 
-    public void load(String path) {
+    public void load() {
         // TODO remove test code
         pokemon[0] = Pokemon.generate(151, 100);
         pokemon[1] = Pokemon.generate(1, 10);
+        pokemon[1].setHealth(0);
         enemyPokemon = Pokemon.generate(151, 5);
         // end test code
         
@@ -132,5 +134,7 @@ public class GameManager {
         GameManager gm = getInstance();
         return gm.pokemon[gm.selectedPokemonIdx];
     }
+
+
 }
 

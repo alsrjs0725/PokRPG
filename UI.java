@@ -2,24 +2,38 @@ import javax.swing.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.function.Consumer;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.Graphics;
+import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 
-public class UI extends JFrame{
+public class UI extends JFrame {
     public static final BufferedImage[][] POKEMON_IMG = new BufferedImage[152][8];
-    public static Font font;
+    public static final BufferedImage[][] GRAY_POKEMON_IMG = new BufferedImage[152][8];
+    public static Font largeFont, mediumFont, smallFont;
+    public MainScreen mainScreen;
+
+    private static UI ui;
+
+    public static UI getInstance() {
+        if (ui == null) ui = new UI();
+        return ui;
+    }
 
     public static void loadSprite() {
         if (POKEMON_IMG[1][0] != null) return;
         int x, y, tmp;
-        BufferedImage baseSprite = null;
+        BufferedImage baseSprite = null, grayScaledSprite = null;
         try { baseSprite = ImageIO.read(new File("./asset/PokemonSprite.png")); } catch (IOException e) { System.out.println("loadBaseSpriteError"); System.exit(1);}
+        try { grayScaledSprite = ImageIO.read(new File("./asset/PokemonSpriteGrayScaled.png")); } catch (IOException e) { System.out.println("loadBaseSpriteError"); System.exit(1);}
 
         for (int i = 1; i < 152; i++) {
             tmp = i - 1;
@@ -49,9 +63,12 @@ public class UI extends JFrame{
             y = (tmp / 10) * 195;
             for (int j = 0; j < 6; j++) {
                 POKEMON_IMG[i][j] = baseSprite.getSubimage(x + 1 +  (j % 3) * 81, y + 34 + (j / 3) * 81, 80, 80);
+                GRAY_POKEMON_IMG[i][j] = grayScaledSprite.getSubimage(x + 1 +  (j % 3) * 81, y + 34 + (j / 3) * 81, 80, 80);
             }
             POKEMON_IMG[i][6] = baseSprite.getSubimage(x + 178, y + 1, 32, 32);
             POKEMON_IMG[i][7] = baseSprite.getSubimage(x + 211, y + 1, 32, 32);
+            GRAY_POKEMON_IMG[i][6] = grayScaledSprite.getSubimage(x + 211, y + 1, 32, 32);
+            GRAY_POKEMON_IMG[i][7] = grayScaledSprite.getSubimage(x + 211, y + 1, 32, 32);
         }
     }
 
@@ -59,14 +76,52 @@ public class UI extends JFrame{
     class MainScreen extends JPanel {
         LeftMenuBar leftMenuBar;
         TextBox textBox;
-        BattleScreen battleScreen;
+        MainArea mainArea;
 
         void sleep(long milisecond) {
             try {Thread.sleep(milisecond);} catch (InterruptedException e) {}
         }
         
         class LeftMenuBar extends JPanel {
+            JButton button[] = new JButton[4];
+
             LeftMenuBar() {
+                setLayout(null);
+                button[0] = new JButton("이동");
+                button[1] = new JButton("도감");
+                button[2] = new JButton("배낭");
+                button[3] = new JButton("저장");
+
+                for (int i = 0; i < 4; i++) {
+                    add(button[i]);
+                    button[i].setFont(mediumFont);
+                    button[i].setSize(90, 90);
+                    button[i].setLocation(5, i * 100 + 5);
+                    button[i].setVisible(true);
+                }
+
+                button[0].addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        // TODO
+                    }
+                });
+                button[1].addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        // TODO
+                    }
+                });
+                button[2].addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        // TODO
+                    }
+                });
+                button[3].addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        GameManager.getInstance().save();
+                        JOptionPane.showMessageDialog(null, "저장되었습니다");
+                    }
+                });
+
                 setSize(100, 400);
                 setLocation(0, 0);
                 setBackground(Color.red);
@@ -78,6 +133,13 @@ public class UI extends JFrame{
 
             class LabelPanel extends JPanel {
                 JLabel label[] = new JLabel[4];
+
+                @Override
+                public void setVisible(boolean aFlag) {
+                    if (aFlag) hideAllFrame();
+                    super.setVisible(aFlag);
+                }
+
                 LabelPanel() {
                     setSize(700, 225);
                     setLocation(0, 0);
@@ -86,12 +148,13 @@ public class UI extends JFrame{
                     
                     for (int i = 0; i < 4; i++) {
                         label[i] = new JLabel();
-                        label[i].setFont(font);
+                        label[i].setFont(largeFont);
                         label[i].setForeground(Color.BLACK);
                         label[i].setHorizontalAlignment(SwingConstants.LEFT);
                         add(label[i]);
                         label[i].setLocation(10, 5 + 55 * i);
                         label[i].setSize(700, 50);
+                        label[i].setVisible(rootPaneCheckingEnabled);
                     }
                     
                 }
@@ -100,9 +163,9 @@ public class UI extends JFrame{
                     int idx = 0, length = 0;
                     String tmp = "";
                     for (int i = 0; i < 4; i++) {
-                        label[i].setText(tmp);
-                        label[i].setVisible(true);
+                        label[i].setText("");
                     }
+                    setVisible(true);
                     for (int i = 0; i < s.length(); i++){
                         if (s.charAt(i) == '\n' || length > 32) {
                             idx++;
@@ -128,11 +191,17 @@ public class UI extends JFrame{
                         sleep(50);
                     }
                     sleep(1000);
-                    for (int i = 0; i < 4; i++) label[i].setVisible(false);
+                    setVisible(false);
                 }
             }
             class ButtonPanel extends JPanel {
                 JButton button[] = new JButton[4];
+
+                @Override
+                public void setVisible(boolean aFlag) {
+                    if (aFlag) hideAllFrame();
+                    super.setVisible(aFlag);
+                }
 
                 ButtonPanel(){
                     setSize(700, 225);
@@ -145,7 +214,7 @@ public class UI extends JFrame{
                     button[3] = new JButton("교체");
                     for (int i = 0; i < 4; i++) {
                         add(button[i]);
-                        button[i].setFont(font);
+                        button[i].setFont(largeFont);
                         button[i].setSize(334, 105);
                         button[i].setLocation((i % 2 == 0)?5:345, (i / 2 == 0)?5:115);
                     }
@@ -155,6 +224,24 @@ public class UI extends JFrame{
                         public void actionPerformed(ActionEvent e){
                             setVisible(false);
                             GameManager.raiseEvent(Event.newAttackEvent(GameManager.getCurrentPokemon().getAttackDamage()));
+                        }
+                    });
+                    button[1].addActionListener(new ActionListener() {
+                        public void actionPerformed(ActionEvent e){
+                            setVisible(false);
+                            // TODO
+                        }
+                    });
+                    button[2].addActionListener(new ActionListener() {
+                        public void actionPerformed(ActionEvent e){
+                            setVisible(false);
+                            // TODO
+                        }
+                    });
+                    button[3].addActionListener(new ActionListener() {
+                        public void actionPerformed(ActionEvent e){
+                            setVisible(false);
+                            UI.getInstance().mainScreen.mainArea.selectPokemon(null);
                         }
                     });
                 }
@@ -195,85 +282,224 @@ public class UI extends JFrame{
             }
         }
 
-        class BattleScreen extends JPanel {
-            int x = 0, y = 160, enemyX = 360, enemyY = 0;
-            BattleScreen() {
+        class MainArea extends JPanel {
+            BattleScreen bs = new BattleScreen();
+            SelectPokemonScreen sps = new SelectPokemonScreen();
+
+            void hideAllFrame() {
+                bs.setVisible(false);
+                sps.setVisible(false);
+            }
+
+            MainArea() {
+                setLayout(null);
                 setSize(600, 400);
                 setLocation(100, 0);
-                setBackground(Color.GRAY);
-                setVisible(rootPaneCheckingEnabled);
+                setVisible(true);
+                add(bs);
+                add(sps);
+            }
 
-                GameManager.registEventListener((Event e) -> {  // event 처리
-                    switch (e.type) { // TODO SKILL CHANGE DEAD AND MORE
-                        case Event.EVENT_TYPE.ATTACK:
-                            x += 10;
-                            repaint();
-                            sleep(100);
-                            x -= 10;
-                            repaint();
-                            sleep(100);
+            class SelectPokemonScreen extends JPanel {
 
-                            for (int i = 0; i < 3; i++) {
-                                enemyX += 10;
-                                repaint();
-                                sleep(50);
-                                enemyX -= 20;
-                                repaint();
-                                sleep(50);
-                                enemyX += 10;
-                            }
-                            repaint();
-                            break;
-                        case Event.EVENT_TYPE.ENEMY_ATTACK:
-                            enemyX -= 10;
-                            repaint();
-                            sleep(100);
-                            enemyX += 10;
-                            repaint();
-                            sleep(100);
+                class PokemonButton extends JPanel {
+                    Pokemon pokemon;
+                    Consumer<Pokemon> callBack;
+                    boolean isEnabled = true, _isEnabled = true;
+                    JLabel image = new JLabel(), name = new JLabel(), hp = new JLabel(), lv = new JLabel();
+                    PokemonButton(Pokemon pokemon, Consumer<Pokemon> callBack) {
+                        this.pokemon = pokemon;
+                        this.callBack = callBack;
+                        setLayout(null);
+                        name.setFont(mediumFont); hp.setFont(smallFont); lv.setFont(smallFont); 
+                        image.setSize(127, 127);
+                        image.setLocation(0, 0);
+                        hp.setSize(112, 57);
+                        hp.setLocation(127, 70);
+                        name.setSize(168, 70);
+                        name.setLocation(127,0);
+                        lv.setSize(56,57);
+                        lv.setLocation(239,70);
+                        image.setVisible(rootPaneCheckingEnabled);
+                        hp.setVisible(rootPaneCheckingEnabled);
+                        name.setVisible(rootPaneCheckingEnabled);
+                        lv.setVisible(rootPaneCheckingEnabled);
+                        add(lv);
+                        add(name);
+                        add(image);
+                        add(hp);
+                    }
 
-                            for (int i = 0; i < 3; i++) {
+                    void setPokemon(Pokemon p) {
+                        this.pokemon = p;
+                        update();
+                    }
+
+                    void setButtonEnabled(boolean aFlag) {
+                        isEnabled = aFlag;
+                        update();
+                    }
+
+                    void update() {
+                        if (!isEnabled) _isEnabled = false;
+                        if (pokemon == null) {
+                            _isEnabled = false;
+                            image.setVisible(false);
+                            hp.setVisible(false);
+                            name.setVisible(false);
+                            lv.setVisible(false);
+                            setBackground(Color.GRAY);
+                            return;
+                        }
+                        if (pokemon.getHealth() == 0) {
+                            image.setIcon(new ImageIcon(GRAY_POKEMON_IMG[pokemon.id][6].getScaledInstance(127, 127, Image.SCALE_DEFAULT)));
+                            _isEnabled = false;
+                        } else {
+                            image.setIcon(new ImageIcon(POKEMON_IMG[pokemon.id][6].getScaledInstance(127, 127, Image.SCALE_DEFAULT)));
+                            if (isEnabled) _isEnabled = true;
+                        }
+                        hp.setText(pokemon.getHealth() + "/" + pokemon.getMaxHealth());
+                        name.setText(pokemon.name);
+                        lv.setText(pokemon.getLevel() + "LV");
+                        if (_isEnabled) setBackground(Color.WHITE);
+                        else setBackground(Color.GRAY);
+                    }
+
+                    // TODO POKEMONBUTTON CLICK LISTSER
+                }
+
+                PokemonButton pokemonButton[] = new PokemonButton[6];
+                Consumer<Pokemon> eventHandler;
+                SelectPokemonScreen() {
+                    setSize(600, 400);
+                    setLocation(0, 0);
+                    setLayout(null);
+                    setBackground(Color.GRAY);
+                    for (int i = 0; i < 6; i++) {
+                        pokemonButton[i] = new PokemonButton(GameManager.getInstance().pokemon[i], (Pokemon p) -> {
+                            if (eventHandler == null) return;
+                            eventHandler.accept(p);
+                            eventHandler = null;
+                        });
+                        pokemonButton[i].setLocation(3 + (i % 2) * 299, 3 + (i / 2) * 130);
+                        pokemonButton[i].setSize(295, 127);
+                        pokemonButton[i].setFont(largeFont);
+                        add(pokemonButton[i]);
+                    }
+                }
+
+                @Override
+                public void setVisible(boolean aFlag) {
+                    if (aFlag) {
+                        hideAllFrame();
+                        for (int i = 0; i < 6; i++){
+                            pokemonButton[i].setPokemon(GameManager.getInstance().pokemon[i]);
+                        }
+                    }
+                    super.setVisible(aFlag);
+                }
+            }
+
+            class BattleScreen extends JPanel {
+                int x = 0, y = 160, enemyX = 360, enemyY = 0;
+
+                @Override
+                public void setVisible(boolean aFlag) {
+                    if (aFlag) hideAllFrame();
+                    super.setVisible(aFlag);
+                }
+
+                BattleScreen() {
+                    setSize(600, 400);
+                    setLocation(0, 0);
+                    setBackground(Color.GRAY);
+
+                    GameManager.registEventListener((Event e) -> {  // event 처리
+                        switch (e.type) { // TODO SKILL CHANGE DEAD AND MORE
+                            case Event.EVENT_TYPE.ATTACK:
                                 x += 10;
                                 repaint();
-                                sleep(50);
-                                x -= 20;
+                                sleep(100);
+                                x -= 10;
                                 repaint();
-                                sleep(50);
-                                x += 10;
-                            }
-                            repaint();
-                            break;
-                            // Below is doing nothing list
-                        case Event.EVENT_TYPE.TURN_START:
-                        case Event.EVENT_TYPE.TEXT:
-                        case Event.EVENT_TYPE.BATTLE_START: 
-                            break;
-                        default:
-                            System.out.println("UnHandled Event in UI->BattleScreen: " + e.type);
-                }});
+                                sleep(100);
+
+                                for (int i = 0; i < 3; i++) {
+                                    enemyX += 10;
+                                    repaint();
+                                    sleep(50);
+                                    enemyX -= 20;
+                                    repaint();
+                                    sleep(50);
+                                    enemyX += 10;
+                                }
+                                repaint();
+                                break;
+                            case Event.EVENT_TYPE.ENEMY_ATTACK:
+                                enemyX -= 10;
+                                repaint();
+                                sleep(100);
+                                enemyX += 10;
+                                repaint();
+                                sleep(100);
+
+                                for (int i = 0; i < 3; i++) {
+                                    x += 10;
+                                    repaint();
+                                    sleep(50);
+                                    x -= 20;
+                                    repaint();
+                                    sleep(50);
+                                    x += 10;
+                                }
+                                repaint();
+                                break;
+                            case Event.EVENT_TYPE.BATTLE_START: 
+                                setVisible(true);
+                                break;
+                                // Below is doing nothing list
+                            case Event.EVENT_TYPE.TURN_START:
+                            case Event.EVENT_TYPE.TEXT:
+                                break;
+                            default:
+                                System.out.println("UnHandled Event in UI->BattleScreen: " + e.type);
+                    }});
+                }
+                
+                public void paint(Graphics g) {
+                    super.paint(g);
+                    g.drawImage(POKEMON_IMG[GameManager.getCurrentPokemon().id][2], x, y, 240, 240, null);
+                    g.drawImage(POKEMON_IMG[GameManager.getInstance().enemyPokemon.id][0], enemyX, enemyY, 240, 240, null);
+                }
             }
             
-            public void paint(Graphics g) {
-                super.paint(g);
-                g.drawImage(POKEMON_IMG[GameManager.getInstance().pokemon[GameManager.getInstance().selectedPokemonIdx].id][2], x, y, 240, 240, null);
-                g.drawImage(POKEMON_IMG[GameManager.getInstance().enemyPokemon.id][0], enemyX, enemyY, 240, 240, null);
+            public void selectPokemon(Consumer<Pokemon> func) {
+                sps.setVisible(true);
+                sps.eventHandler = func;
             }
         }
 
         MainScreen() {
             leftMenuBar = new LeftMenuBar();
             textBox = new TextBox();
-            battleScreen = new BattleScreen();
+            mainArea = new MainArea();
             setLayout(null);
             add(leftMenuBar);
             add(textBox);
-            add(battleScreen);
+            add(mainArea);
         }
     }
+    
 
     public UI() {
-        try { font = Font.createFont(Font.TRUETYPE_FONT, new File("./asset/DungGeunMo.ttf")).deriveFont(38.0f); } catch (IOException | FontFormatException e) { System.out.println("loadFontError"); System.exit(1); }
-        MainScreen mainScreen = new MainScreen();
+        try { 
+            largeFont = Font.createFont(Font.TRUETYPE_FONT, new File("./asset/DungGeunMo.ttf")).deriveFont(38.0f); 
+            mediumFont = largeFont.deriveFont(24.0f);
+            smallFont = largeFont.deriveFont(18.0f);
+        } catch (IOException | FontFormatException e) { 
+            System.out.println("loadFontError"); System.exit(1); 
+        }
+        mainScreen = new MainScreen();
         loadSprite();
         setSize(700, 665);
         setResizable(false);
@@ -287,11 +513,15 @@ public class UI extends JFrame{
 
     public static void main(String args[]) {  // Entry point
         GameManager gm = GameManager.getInstance();
-        new UI();
+        UI ui = UI.getInstance();
         // TODO remove test code
         // Event.raiseAllEvent();
-        gm.raiseEvent(Event.newTextEvent("HELLO"));
-        gm.raiseEvent(Event.newTurnStartEvent());
+        // gm.raiseEvent(Event.newTextEvent("HELLO"));
+        gm.raiseEvent(Event.newBattleStartEvent(Pokemon.generate(122, 10)));
+        // ui.mainScreen.sleep(10000);
+        ui.mainScreen.mainArea.selectPokemon((Pokemon p) -> {
+            System.out.println(p.name);
+        });
         // testcode end
         gm.startLoop();
     }

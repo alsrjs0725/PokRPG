@@ -37,12 +37,12 @@ public class Status implements Cloneable{  // 상태이상
 
     public void activate() {
         if (eventListenerRegistedID != null) return;
-        eventListenerRegistedID = GameManager.getInstance().registEventListener(eventListener);
+        eventListenerRegistedID = GameManager.registEventListener(eventListener);
     }
 
     public void deActivate() {
         if (eventListenerRegistedID == null) return;
-        GameManager.getInstance().unRegistEventListener(eventListenerRegistedID);
+        GameManager.unRegistEventListener(eventListenerRegistedID);
     }
 
     public static Status get(int id) {
