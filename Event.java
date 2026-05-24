@@ -1,6 +1,5 @@
 public class Event {
     enum EVENT_TYPE {       // 사용하는 변수 목록(이벤트 발생시 변경해야 하는 변수 목록, 나머지는 null), 
-                            //
         NOTHING,            //
         BATTLE_START,       // pokemon(enemy)
         TURN_START,         //
@@ -19,6 +18,7 @@ public class Event {
         IN_BOX,             // idx (=selectedPokemonIdx)
         OUT_BOX,            // pokemon, idx (=selectedPokemonIdx)
         TEXT,               // show text
+        EXIT,               // 
         CLEAR_EVENT_QUEUE   // BE CAREFUL!
     };
 

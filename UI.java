@@ -2,6 +2,7 @@ import javax.swing.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.awt.Color;
 import java.awt.Font;
@@ -90,7 +91,7 @@ public class UI extends JFrame {
                 button[0] = new JButton("이동");
                 button[1] = new JButton("도감");
                 button[2] = new JButton("배낭");
-                button[3] = new JButton("저장");
+                button[3] = new JButton("취소");
 
                 for (int i = 0; i < 4; i++) {
                     add(button[i]);
@@ -99,6 +100,7 @@ public class UI extends JFrame {
                     button[i].setLocation(5, i * 100 + 5);
                     button[i].setVisible(true);
                 }
+                button[3].setEnabled(false);
 
                 button[0].addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
@@ -117,8 +119,10 @@ public class UI extends JFrame {
                 });
                 button[3].addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
-                        GameManager.getInstance().save();
-                        JOptionPane.showMessageDialog(null, "저장되었습니다");
+                        UI ui = UI.getInstance();
+                        ui.mainScreen.mainArea.bs.setVisible(true);
+                        ui.mainScreen.textBox.bp.setVisible(true);
+                        button[3].setEnabled(false);
                     }
                 });
 
@@ -241,7 +245,11 @@ public class UI extends JFrame {
                     button[3].addActionListener(new ActionListener() {
                         public void actionPerformed(ActionEvent e){
                             setVisible(false);
-                            UI.getInstance().mainScreen.mainArea.selectPokemon(null);
+                            UI.getInstance().mainScreen.mainArea.selectPokemon((Pokemon p) -> {
+                                int idx = 0;
+                                for (int i = 0; i < 6; i++) if (GameManager.getInstance().pokemon[i] == p) idx = i;
+                                GameManager.raiseEvent(Event.newChangeEvent(idx));
+                            });
                         }
                     });
                 }
@@ -262,18 +270,6 @@ public class UI extends JFrame {
                 setLocation(0, 400);
                 setBackground(Color.WHITE);
                 setVisible(rootPaneCheckingEnabled);
-
-                // regist event handler
-                GameManager.registEventListener((Event e) -> {
-                    if (e.type == Event.EVENT_TYPE.TEXT) {
-                        hideAllFrame();
-                        lp.setVisible(true);
-                        lp.writeText(e.text);
-                    } else if (e.type == Event.EVENT_TYPE.TURN_START) {
-                        hideAllFrame();
-                        bp.setVisible(true);
-                    }
-                });
             }
 
             void hideAllFrame() {
@@ -307,6 +303,15 @@ public class UI extends JFrame {
                     Consumer<Pokemon> callBack;
                     boolean isEnabled = true, _isEnabled = true;
                     JLabel image = new JLabel(), name = new JLabel(), hp = new JLabel(), lv = new JLabel();
+                    MouseAdapter clickListener = new MouseAdapter() {
+                        @Override
+                        public void mouseClicked(MouseEvent e) {
+                            System.out.println(pokemon.name);
+                            if (!_isEnabled) return;
+                            callBack.accept(pokemon);
+                        }
+                    };
+
                     PokemonButton(Pokemon pokemon, Consumer<Pokemon> callBack) {
                         this.pokemon = pokemon;
                         this.callBack = callBack;
@@ -328,6 +333,10 @@ public class UI extends JFrame {
                         add(name);
                         add(image);
                         add(hp);
+                        image.addMouseListener(clickListener);
+                        name.addMouseListener(clickListener);
+                        lv.addMouseListener(clickListener);
+                        hp.addMouseListener(clickListener);
                     }
 
                     void setPokemon(Pokemon p) {
@@ -407,6 +416,7 @@ public class UI extends JFrame {
                 public void setVisible(boolean aFlag) {
                     if (aFlag) hideAllFrame();
                     super.setVisible(aFlag);
+                    UI.getInstance().mainScreen.leftMenuBar.button[3].setEnabled(!aFlag);
                 }
 
                 BattleScreen() {
@@ -457,9 +467,28 @@ public class UI extends JFrame {
                             case Event.EVENT_TYPE.BATTLE_START: 
                                 setVisible(true);
                                 break;
-                                // Below is doing nothing list
+                                case Event.EVENT_TYPE.CHANGE:
+                                    setVisible(true);
+                                    // TODO ADD MOTION
+                                    break;
                             case Event.EVENT_TYPE.TURN_START:
+                                UI.getInstance().mainScreen.mainArea.bs.setVisible(true);
+                                UI.getInstance().mainScreen.textBox.bp.setVisible(true);
+                                break;
                             case Event.EVENT_TYPE.TEXT:
+                                UI.getInstance().mainScreen.textBox.lp.writeText(e.text);
+                                break;
+                            case Event.EVENT_TYPE.DEAD:
+                                {
+                                    boolean flag = false;
+                                    for (int i = 0; i < 6; i++) {
+                                        if (GameManager.getInstance().pokemon[i] == null) continue;
+                                        if (GameManager.getInstance().pokemon[i].getHealth() != 0) flag = true;
+                                    }
+                                    if (flag) selectPokemon((Pokemon p) -> {
+                                        for (int i = 0; i < 6; i++) if (p == GameManager.getInstance().pokemon[i]) GameManager.raiseEvent(Event.newChangeEvent(i));
+                                    });
+                                }
                                 break;
                             default:
                                 System.out.println("UnHandled Event in UI->BattleScreen: " + e.type);
@@ -517,7 +546,7 @@ public class UI extends JFrame {
         // TODO remove test code
         // Event.raiseAllEvent();
         // gm.raiseEvent(Event.newTextEvent("HELLO"));
-        gm.raiseEvent(Event.newBattleStartEvent(Pokemon.generate(122, 10)));
+        gm.raiseEvent(Event.newBattleStartEvent(Pokemon.generate(151, 10)));
         // ui.mainScreen.sleep(10000);
         ui.mainScreen.mainArea.selectPokemon((Pokemon p) -> {
             System.out.println(p.name);

@@ -26,9 +26,9 @@ class Item implements Cloneable{
             ));
         }),
         new Item("만능 회복약", "모든 상태이상을 제거한다", 3, (Pokemon p) -> {
-            Status prv = GameManager.getInstance().myStatus;
+            Status prv = GameManager.getInstance().status;
             prv.deActivate();
-            GameManager.getInstance().myStatus = Status.get(0);
+            GameManager.getInstance().status = Status.get(0);
             GameManager.raiseEvent(Event.newTextEvent(
                 "만능 회복약을 사용했다! 상태이상 " + prv.name + " 이/가 제거되었다!"
             ));
