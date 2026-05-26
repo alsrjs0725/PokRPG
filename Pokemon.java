@@ -338,9 +338,10 @@ public class Pokemon {
     void setHealth(int health) { this.health = Math.min(getMaxHealth(), Math.max(0, health)); }
     int getXp() { return xp; }
     void setXp(int xp) {
-        int prvLv = getLevel();
+        int prvLv = getLevel(), prvMaxHealth = getMaxHealth();
         this.xp = xp;
         if (getLevel() > prvLv) {
+            setHealth(getHealth() + getMaxHealth() - prvMaxHealth);
             GameManager.raiseEvent(Event.newTextEvent(name + "의 레벨이 올랐다!\n" + prvLv + " -> " + getLevel()));
         }
     }

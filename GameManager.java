@@ -88,13 +88,14 @@ public class GameManager {
                     enemyPokemon.setHealth(enemyPokemon.getHealth() - e.damage);
                     System.out.println(e.damage);
                     raiseEvent(Event.newTextEvent(e.damage + "의 대미지를 입혔다!"));
-                    raiseEvent(Event.newEnemyTurnStartEvent());
+                    raiseEvent(Event.newTurnEndEvent());
                     break;
                 case Event.EVENT_TYPE.CLEAR_EVENT_QUEUE:
                     eventList.clear();
                     break;
                 case Event.EVENT_TYPE.ITEM:
                     e.item.use.accept(e.pokemon);
+                    raiseEvent(Event.newTurnEndEvent());
                     break;
                 case Event.EVENT_TYPE.EXIT:
                     save();

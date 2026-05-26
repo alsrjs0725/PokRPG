@@ -489,7 +489,9 @@ public class UI extends JFrame {
                                         for (int i = 0; i < 6; i++) if (p == GameManager.getInstance().pokemon[i]) GameManager.raiseEvent(Event.newChangeEvent(i));
                                     });
                                 }
+                                UI.getInstance().mainScreen.leftMenuBar.button[3].setEnabled(false);
                                 break;
+                                
                             default:
                                 System.out.println("UnHandled Event in UI->BattleScreen: " + e.type);
                     }});
