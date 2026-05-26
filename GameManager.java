@@ -47,6 +47,7 @@ public class GameManager {
         pokemon[1] = Pokemon.generate(1, 10);
         pokemon[1].setHealth(1);
         enemyPokemon = Pokemon.generate(151, 5);
+        itemCount.put(1, 2);
         // end test code
         
         
@@ -94,7 +95,9 @@ public class GameManager {
                     eventList.clear();
                     break;
                 case Event.EVENT_TYPE.ITEM:
+                    itemCount.put(e.item.id, itemCount.get(e.item.id) - 1);
                     e.item.use.accept(e.pokemon);
+                    raiseEvent(Event.newEnemyTurnStartEvent());
                     break;
                 case Event.EVENT_TYPE.EXIT:
                     save();
@@ -205,6 +208,19 @@ public class GameManager {
         gm.status.deActivate();
         gm.status = s;
         s.activate();
+    }
+
+    public static int getItemCount(int id) {
+        Integer rtn = GameManager.getInstance().itemCount.get(id);
+        return ((rtn == null) ? 0:rtn);
+    }
+
+    public static void setItmeCount(int id, int value) {
+        GameManager.getInstance().itemCount.put(id, value);
+    }
+
+    public static HashMap<Integer, Integer> getItemCount() {
+        return (HashMap<Integer, Integer>) GameManager.getInstance().itemCount.clone();
     }
 }
 

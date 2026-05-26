@@ -1,18 +1,13 @@
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.border.EmptyBorder;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.Callable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.FontFormatException;
-import java.awt.Graphics;
-import java.awt.Image;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 
@@ -198,6 +193,7 @@ public class UI extends JFrame {
                     setVisible(false);
                 }
             }
+
             class ButtonPanel extends JPanel {
                 JButton button[] = new JButton[4];
 
@@ -239,7 +235,17 @@ public class UI extends JFrame {
                     button[2].addActionListener(new ActionListener() {
                         public void actionPerformed(ActionEvent e){
                             setVisible(false);
-                            // TODO
+                            UI.getInstance().mainScreen.mainArea.selectItem((Item i) -> {
+                                if (i.selectPokemon) {
+                                    UI.getInstance().mainScreen.mainArea.selectPokemon((Pokemon p) -> {
+                                        GameManager.raiseEvent(Event.newItemEvent(i, p));
+                                        UI.getInstance().mainScreen.mainArea.bs.setVisible(true);
+                                    });
+                                } else {
+                                    GameManager.raiseEvent(Event.newItemEvent(i, null));
+                                    UI.getInstance().mainScreen.mainArea.bs.setVisible(true);
+                                }
+                            });
                         }
                     });
                     button[3].addActionListener(new ActionListener() {
@@ -281,10 +287,12 @@ public class UI extends JFrame {
         class MainArea extends JPanel {
             BattleScreen bs = new BattleScreen();
             SelectPokemonScreen sps = new SelectPokemonScreen();
+            SelectItemScreen sis = new SelectItemScreen();
 
             void hideAllFrame() {
                 bs.setVisible(false);
                 sps.setVisible(false);
+                sis.setVisible(false);
             }
 
             MainArea() {
@@ -294,6 +302,7 @@ public class UI extends JFrame {
                 setVisible(true);
                 add(bs);
                 add(sps);
+                add(sis);
             }
 
             class SelectPokemonScreen extends JPanel {
@@ -502,9 +511,112 @@ public class UI extends JFrame {
                 }
             }
             
+            class SelectItemScreen extends JPanel {
+                class ItemButton extends JPanel {
+                    JLabel label[] = new JLabel[3];
+                    boolean isEnabled = true, _isEnabled = true;
+                    Item item;
+                    Consumer<Item> callBack;
+                    MouseAdapter clickListener = new MouseAdapter() {
+                        @Override
+                        public void mouseClicked(MouseEvent e) {
+                            System.out.println(item.name + " clicked");
+                            if (!_isEnabled) return;
+                            callBack.accept(item);
+                        }
+                    };
+
+                    ItemButton(Item item, Consumer<Item> callBack) {
+                        this.item = item;
+                        this.callBack = callBack;
+                        setBorder(new EmptyBorder(10, 5, 10, 10));
+                        for (int i = 0; i < 3; i++) {
+                            label[i] = new JLabel();
+                            label[i].setFont(mediumFont);
+                            label[i].addMouseListener(clickListener);
+                            label[i].setVisible(true);
+                        }
+                        System.out.println("ITEM " + item.name + " BUTTON GENERATED!");
+                        addMouseListener(clickListener);
+                        setLayout(new BorderLayout());
+                        add(label[0], BorderLayout.WEST);
+                        add(label[1], BorderLayout.CENTER);
+                        label[1].setHorizontalAlignment(SwingConstants.CENTER);
+                        add(label[2], BorderLayout.EAST);
+                        update();
+                    }
+
+                    void setButtonEnabled(boolean aFlag) {
+                        isEnabled = aFlag;
+                        update();
+                    }
+
+                    void update() {
+                        _isEnabled = true;
+                        if (!isEnabled) _isEnabled = false;
+                        if (GameManager.getItemCount(item.id) == 0) _isEnabled = false;
+
+                        label[0].setText(Item.get(item.id).name);
+                        label[1].setText(Item.get(item.id).description);
+                        label[2].setText(GameManager.getItemCount(item.id) + "개");
+                        if (_isEnabled) setBackground(Color.WHITE);
+                        else setBackground(Color.GRAY);
+                    }
+                }
+
+                List<ItemButton> btn = new ArrayList<>();
+                JScrollPane pane = new JScrollPane();
+                JPanel itemList = new JPanel();
+                Consumer<Item> eventHandler;
+
+                SelectItemScreen() {
+                    setSize(585, 400);
+                    setLocation(0, 0);
+                    setLayout(new BorderLayout());
+                    setBackground(Color.GRAY);
+                    add(pane, BorderLayout.CENTER);
+                    itemList.setLayout(new GridLayout(0, 1));
+                    itemList.setBackground(Color.RED);
+                    pane.setViewportView(itemList);
+                    pane.setBackground(Color.RED);
+                    pane.getVerticalScrollBar().setUnitIncrement(16);
+                    pane.setVisible(true);
+
+                    for (int i = 1; i < Item.ITEM_TABLE.length; i++) {
+                        ItemButton itemButton = new ItemButton(Item.ITEM_TABLE[i], (Item item) -> {
+                            if (eventHandler == null) return;
+                            eventHandler.accept(item);
+                            eventHandler = null;
+                        });
+                        btn.add(itemButton);
+                        itemList.add(itemButton);
+                        itemButton.setPreferredSize(new Dimension(565, 150));
+                        itemButton.setVisible(true);
+                    }
+                }
+
+                @Override
+                public void setVisible(boolean aFlag) {
+                    if (aFlag) {
+                        hideAllFrame();
+                        for (ItemButton ibtn : btn) {
+                            ibtn.update();
+                        }
+                    }
+                    super.setVisible(aFlag);
+                }
+                
+                
+            }
+            
             public void selectPokemon(Consumer<Pokemon> func) {
                 sps.setVisible(true);
                 sps.eventHandler = func;
+            }
+
+            public void selectItem(Consumer<Item> func) {
+                sis.setVisible(true);
+                sis.eventHandler = func;
             }
         }
 
@@ -531,7 +643,7 @@ public class UI extends JFrame {
         mainScreen = new MainScreen();
         loadSprite();
         setSize(700, 665);
-        setResizable(false);
+        // setResizable(false);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         add(mainScreen);
