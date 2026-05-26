@@ -3,6 +3,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.function.Consumer;
 import java.util.HashMap;
 
@@ -121,7 +122,9 @@ public class GameManager {
                     break;
                 case Event.EVENT_TYPE.ENEMY_TURN_START:
                     // TODO what enemy do (= AI);
-                    raiseEvent(Event.newEnemyAttackEvent(enemyPokemon.getAttackDamage()));
+                    int dmg = enemyPokemon.getAttackDamage();
+                    dmg += new Random().nextInt() % (dmg / 5);
+                    raiseEvent(Event.newEnemyAttackEvent(dmg));
                     break;
                 case Event.EVENT_TYPE.ENEMY_ATTACK:
                     getCurrentPokemon().setHealth(getCurrentPokemon().getHealth() - e.damage);
@@ -153,6 +156,11 @@ public class GameManager {
                         }
                         // 테스트 코드 끝
                     }
+                    break;
+                case Event.EVENT_TYPE.BATTLE_END:
+                    raiseEvent(Event.newTextEvent(enemyPokemon.name + "를 쓰러뜨렸다!\n" + e.xp + "의 경험치를 얻었다."));
+                    getCurrentPokemon().setXp(getCurrentPokemon().getXp() + e.xp);
+                    raiseEvent(Event.newBattleStartEvent(Pokemon.generateRandom()));
                     break;
                 case Event.EVENT_TYPE.TURN_START:
                 case Event.EVENT_TYPE.NOTHING:
@@ -217,10 +225,6 @@ public class GameManager {
 
     public static void setItmeCount(int id, int value) {
         GameManager.getInstance().itemCount.put(id, value);
-    }
-
-    public static HashMap<Integer, Integer> getItemCount() {
-        return (HashMap<Integer, Integer>) GameManager.getInstance().itemCount.clone();
     }
 }
 

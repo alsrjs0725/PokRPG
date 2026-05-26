@@ -346,7 +346,13 @@ public class Pokemon {
         }
     }
     int getLevel() {return ((int) Math.pow(xp, 0.4)) + 1;}
-    void setLevel(int level) {this.xp = (int) Math.pow(level - 1, 2.5);}
+    void setLevel(int level) {
+        int prvLv = getLevel(), prvMaxHealth = getMaxHealth();
+        this.xp = (int) Math.pow(level - 1, 2.5);
+        if (getLevel() > prvLv) {
+            setHealth(getHealth() + getMaxHealth() - prvMaxHealth);
+        }
+    }
     int getHBSValue() { return HEALTH_BASE_STAT_VALUE_TABLE[id]; }  // Health BaseStat Value
     int getDBSValue() { return DAMAGE_BASE_STAT_VALUE_TABLE[id]; }  // Damage BaseStat Value
     int getHIVValue() { return individualValue % 32; }  // Health BaseStat Value
@@ -371,6 +377,20 @@ public class Pokemon {
         p.setHealth(p.getMaxHealth());
         for (int i = 0; i < 4; i++) p.skill[i] = Skill.get(0);
         // TODO SKill Add
+        return p;
+    }
+
+    static Pokemon generateRandom() {
+        Random rd = new Random();
+        int minLevel = 2123456789, maxLevel = 0;
+        Pokemon p;
+        for (int i = 0; i < 6; i++) {
+            if (GameManager.getInstance().pokemon[i] == null) continue;
+            minLevel = Math.min(minLevel, GameManager.getInstance().pokemon[i].getLevel());
+            maxLevel = Math.max(maxLevel, GameManager.getInstance().pokemon[i].getLevel());
+        }
+        p = Pokemon.generate(Math.abs(rd.nextInt()) % (Pokemon.NAME_TABLE.length - 1) + 1, 1);
+        p.setLevel(Math.abs(rd.nextInt()) % (maxLevel - minLevel + 10) + 10 + minLevel);
         return p;
     }
 

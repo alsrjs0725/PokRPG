@@ -157,6 +157,12 @@ public class Event {
         return e;
     }
 
+    public static Event newExitEvent() {
+        Event e = new Event();
+        e.type = EVENT_TYPE.EXIT;
+        return e;
+    }
+
     public static void raiseAllEvent() {
         GameManager.raiseEvent(Event.newNothingEvent());
         GameManager.raiseEvent(Event.newBattleStartEvent(Pokemon.generate(151, 3)));

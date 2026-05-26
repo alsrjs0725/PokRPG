@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
+import java.util.Random;
 
 public class UI extends JFrame {
     public static final BufferedImage[][] POKEMON_IMG = new BufferedImage[152][8];
@@ -223,7 +224,9 @@ public class UI extends JFrame {
                     button[0].addActionListener(new ActionListener() {
                         public void actionPerformed(ActionEvent e){
                             setVisible(false);
-                            GameManager.raiseEvent(Event.newAttackEvent(GameManager.getCurrentPokemon().getAttackDamage()));
+                            int dmg = GameManager.getCurrentPokemon().getAttackDamage();
+                            dmg += new Random().nextInt() % (dmg / 5);
+                            GameManager.raiseEvent(Event.newAttackEvent(dmg));
                         }
                     });
                     button[1].addActionListener(new ActionListener() {
@@ -420,6 +423,7 @@ public class UI extends JFrame {
 
             class BattleScreen extends JPanel {
                 int x = 0, y = 160, enemyX = 360, enemyY = 0;
+                double scale = 1.0, enemyScale = 1.0;
 
                 @Override
                 public void setVisible(boolean aFlag) {
@@ -508,8 +512,25 @@ public class UI extends JFrame {
                 
                 public void paint(Graphics g) {
                     super.paint(g);
-                    g.drawImage(POKEMON_IMG[GameManager.getCurrentPokemon().id][2], x, y, 240, 240, null);
-                    g.drawImage(POKEMON_IMG[GameManager.getInstance().enemyPokemon.id][0], enemyX, enemyY, 240, 240, null);
+                    g.drawImage(POKEMON_IMG[GameManager.getCurrentPokemon().id][2], x, y, (int) (240 * scale), (int) (240 * scale), null);
+                    g.drawImage(POKEMON_IMG[GameManager.getInstance().enemyPokemon.id][0], enemyX, enemyY, (int) (240 * enemyScale), (int) (240 * enemyScale), null);
+                    g.setColor(Color.WHITE);
+                    g.drawRect(320, 240, 240, 80);
+                    g.drawRect(40, 50, 240, 80);
+                    g.setFont(mediumFont);
+                    g.setColor(Color.BLACK);
+                    g.drawString(GameManager.getCurrentPokemon().name, 330, 265);
+                    g.drawString(GameManager.getInstance().enemyPokemon.name, 50, 75);
+                    g.drawString(GameManager.getCurrentPokemon().getLevel() + "LV", 548 - g.getFontMetrics(mediumFont).stringWidth(GameManager.getCurrentPokemon().getLevel() + "LV"), 265);
+                    g.drawString(GameManager.getInstance().enemyPokemon.getLevel() + "LV", 268 - g.getFontMetrics(mediumFont).stringWidth(GameManager.getInstance().enemyPokemon.getLevel() + "LV"), 75);
+                    g.fillRect(332, 275, 216, 5);
+                    g.fillRect(52, 85, 216, 5);
+                    g.drawString(GameManager.getCurrentPokemon().getHealth() + "/" + GameManager.getCurrentPokemon().getMaxHealth(), 548 - g.getFontMetrics(mediumFont).stringWidth(GameManager.getCurrentPokemon().getHealth() + "/" + GameManager.getCurrentPokemon().getMaxHealth()), 310);
+                    g.drawString(GameManager.getInstance().enemyPokemon.getHealth() + "/" + GameManager.getInstance().enemyPokemon.getMaxHealth(), 268 - g.getFontMetrics(mediumFont).stringWidth(GameManager.getInstance().enemyPokemon.getHealth() + "/" + GameManager.getInstance().enemyPokemon.getMaxHealth()), 120);
+                    g.setColor(Color.RED);
+                    g.fillRect(332, 275, 216 * GameManager.getCurrentPokemon().getHealth() / GameManager.getCurrentPokemon().getMaxHealth(), 5);
+                    g.fillRect(52, 85, 216 * GameManager.getInstance().enemyPokemon.getHealth() / GameManager.getInstance().enemyPokemon.getMaxHealth(), 5);
+
                 }
             }
             
@@ -657,10 +678,23 @@ public class UI extends JFrame {
     public static void main(String args[]) {  // Entry point
         GameManager gm = GameManager.getInstance();
         UI ui = UI.getInstance();
+        ui.addWindowListener(new WindowListener() {
+            public void windowActivated(WindowEvent e) {}
+            public void windowClosed(WindowEvent e) {}
+            public void windowClosing(WindowEvent e) {
+                GameManager.raiseEvent(Event.newExitEvent());
+                System.exit(0);
+            }
+            public void windowDeactivated(WindowEvent e) {}
+            public void windowDeiconified(WindowEvent e) {}
+            public void windowIconified(WindowEvent e) {}
+            public void windowOpened(WindowEvent e) {}
+
+        });
         // TODO remove test code
         // Event.raiseAllEvent();
         // gm.raiseEvent(Event.newTextEvent("HELLO"));
-        gm.raiseEvent(Event.newBattleStartEvent(Pokemon.generate(151, 10)));
+        gm.raiseEvent(Event.newBattleStartEvent(Pokemon.generateRandom()));
         // ui.mainScreen.sleep(10000);
         ui.mainScreen.mainArea.selectPokemon((Pokemon p) -> {
             System.out.println(p.name);
