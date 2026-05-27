@@ -1,6 +1,11 @@
 import java.util.Random;
 
 public class Pokemon {
+    private static final int MAX_SKILL_COUNT = 4;
+    private static final int BASE_SKILL_COUNT = 2;
+    private static final int[] SKILL_LEVEL_THRESHOLDS = {30, 60};
+    private static final Random RANDOM = new Random();
+
     public enum TYPE {
         EMPTY,
         NORMAL,
@@ -311,20 +316,18 @@ public class Pokemon {
     public final int id;
     private int health, individualValue, xp;
     private Skill skill[];  // MAX 4
-    private Equipment equiped;
 
     // Non From Save Variables
     private TYPE type[];   // MAX 2
     public final String name;
     int pp = 0;
 
-    Pokemon(int id, int health, int individualValue, int xp, Skill skill[], Equipment equiped) {
+    Pokemon(int id, int health, int individualValue, int xp, Skill skill[]) {
         this.id = id;
         this.health = health;
         this.individualValue = Math.abs(individualValue);
         this.xp = xp;
         this.skill = skill;
-        this.equiped = equiped;
 
         type = POKEMON_TYPE_TABLE[id];
         name = NAME_TABLE[id];
@@ -337,11 +340,13 @@ public class Pokemon {
     int getHealth() { return health; }
     void setHealth(int health) { this.health = Math.min(getMaxHealth(), Math.max(0, health)); }
     int getXp() { return xp; }
+    int getIndividualValue() { return individualValue; }
     void setXp(int xp) {
         int prvLv = getLevel(), prvMaxHealth = getMaxHealth();
         this.xp = xp;
         if (getLevel() > prvLv) {
             setHealth(getHealth() + getMaxHealth() - prvMaxHealth);
+            addSkillsPassedByLevel(prvLv, getLevel());
             GameManager.raiseEvent(Event.newTextEvent(name + "의 레벨이 올랐다!\n" + prvLv + " -> " + getLevel()));
         }
     }
@@ -351,6 +356,7 @@ public class Pokemon {
         this.xp = (int) Math.pow(level - 1, 2.5) + 1;
         if (getLevel() > prvLv) {
             setHealth(getHealth() + getMaxHealth() - prvMaxHealth);
+            addSkillsPassedByLevel(prvLv, getLevel());
         }
     }
     int getHBSValue() { return HEALTH_BASE_STAT_VALUE_TABLE[id]; }  // Health BaseStat Value
@@ -359,24 +365,43 @@ public class Pokemon {
     int getDIVValue() { return individualValue / 32 % 32; }  // Damage BaseStat Value
     int getAttackDamage() { return ((2 * getDBSValue() + getDIVValue()) * getLevel() / 100  + getLevel()) / 3 + 5; }
 
-    /**
-     * 포켓몬의 장착 아이템을 e로 변경, 착용하고 있는 아이템을 반환.
-     * @param e 장착할 아이템
-     * @return 포켓몬이 원래 장착하고 있던 Equipment
-     */
-    Equipment changeEquipment(Equipment e) {
-        Equipment rtn = equiped;
-        equiped = e;
-        return rtn;
+    private void addSkillsPassedByLevel(int previousLevel, int currentLevel) {
+        for (int threshold : SKILL_LEVEL_THRESHOLDS) {
+            if (previousLevel <= threshold && currentLevel > threshold) addRandomSkill();
+        }
+    }
+
+    private void addRandomSkill() {
+        int emptySlot = -1;
+        for (int i = 0; i < MAX_SKILL_COUNT; i++) {
+            if (skill[i] == null || skill[i].id == 0) {
+                emptySlot = i;
+                break;
+            }
+        }
+        if (emptySlot == -1) return;
+
+        int skillId;
+        do {
+            skillId = RANDOM.nextInt(Skill.SKILL_COUNT) + 1;
+        } while (hasSkill(skillId));
+        skill[emptySlot] = Skill.get(skillId);
+    }
+
+    private boolean hasSkill(int skillId) {
+        for (int i = 0; i < MAX_SKILL_COUNT; i++) {
+            if (skill[i] != null && skill[i].id == skillId) return true;
+        }
+        return false;
     }
 
     static Pokemon generate(int id, int level) {
-        Random rand = new Random();
-        Pokemon p = new Pokemon(id, 1, rand.nextInt(), 0, new Skill[4], Equipment.get(0));
+        Skill[] skills = new Skill[MAX_SKILL_COUNT];
+        for (int i = 0; i < MAX_SKILL_COUNT; i++) skills[i] = Skill.get(0);
+        Pokemon p = new Pokemon(id, 1, RANDOM.nextInt(), 0, skills);
+        for (int i = 0; i < BASE_SKILL_COUNT; i++) p.addRandomSkill();
         p.setLevel(level);
         p.setHealth(p.getMaxHealth());
-        for (int i = 0; i < 4; i++) p.skill[i] = Skill.get(0);
-        // TODO SKill Add
         return p;
     }
 
@@ -390,7 +415,7 @@ public class Pokemon {
             maxLevel = Math.max(maxLevel, GameManager.getPokemon(i).getLevel());
         }
         p = Pokemon.generate(Math.abs(rd.nextInt()) % (Pokemon.NAME_TABLE.length - 1) + 1, 1);
-        p.setLevel(Math.abs(rd.nextInt()) % (maxLevel - minLevel + 10) + 10 + minLevel);
+        p.setLevel(Math.abs(rd.nextInt()) % (maxLevel - minLevel + 10) + Math.max(0, minLevel - 5));
         return p;
     }
 

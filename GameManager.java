@@ -1,3 +1,8 @@
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -15,7 +20,6 @@ public class GameManager {
     List<Pokemon> box = new ArrayList<>();
     private Pokemon pokemon[] = new Pokemon[6];
     HashMap<Integer, Integer> itemCount = new HashMap<>();
-    HashMap<Integer, Integer> equipmentCount = new HashMap<>();
     
     // runtime Variables (= Don't need to save)
     int selectedPokemonIdx = 0, pp = 0;
@@ -30,21 +34,67 @@ public class GameManager {
     boolean itemFinishedBattle = false;
     
     
-    private GameManager() {
-        load();
-    }
+    private GameManager() {}
 
     public static GameManager getInstance() {
-        if (gm == null) gm = new GameManager();
+        if (gm == null) {
+            gm = new GameManager();
+            gm.load();
+        }
         return gm;
     }
 
     public void save() {
-        // TODO
+        boolean flag = true;
+        for (int i = 0; i < 6; i++) if (pokemon[i] != null) flag = false;
+        if (flag) return;
+        StringBuilder json = new StringBuilder();
+        json.append("{\n  \"party\": [");
+        appendPokemonList(json, pokemon);
+        json.append("],\n  \"box\": [");
+        appendPokemonList(json, box.toArray(new Pokemon[0]));
+        json.append("],\n  \"itemCount\": ");
+        appendCountMap(json, itemCount);
+        json.append("\n}\n");
+
+        try {
+            Files.write(Paths.get(SAVE_FILE), json.toString().getBytes(StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            System.err.println("Failed to save game: " + e.getMessage());
+        }
     }
 
     public void load() {
-        // TODO remove test code
+        // testLoad();
+
+        Path savePath = Paths.get(SAVE_FILE);
+        if (Files.exists(savePath)) {
+            try {
+                String json = new String(Files.readAllBytes(savePath), StandardCharsets.UTF_8);
+                Map<String, Object> root = asObject(new JsonParser(json).parse());
+                Pokemon[] loadedPokemon = readPokemonArray(root.get("party"), pokemon.length);
+                List<Pokemon> loadedBox = readPokemonList(root.get("box"));
+                HashMap<Integer, Integer> loadedItems = readCountMap(root.get("itemCount"));
+
+                pokemon = loadedPokemon;
+                box = loadedBox;
+                itemCount = loadedItems;
+                raiseEvent(Event.newBattleStartEvent(Pokemon.generateRandom()));
+            } catch (IOException | RuntimeException e) {
+                System.err.println("Failed to load save file; using test data: " + e.getMessage());
+            }
+        } else {
+            raiseEvent(Event.newStartPokemonEvent());
+        }
+
+        selectUsablePokemon();
+    }
+
+    private void testLoad() {
+        box.clear();
+        pokemon = new Pokemon[6];
+        itemCount.clear();
+
         pokemon[0] = Pokemon.generate(151, 100);
         pokemon[1] = Pokemon.generate(1, 10);
         pokemon[1].setHealth(1);
@@ -55,16 +105,252 @@ public class GameManager {
         itemCount.put(6, 3);
         itemCount.put(7, 1);
         itemCount.put(8, 2);
-        // end test code
-        
-        
+    }
+
+    private void selectUsablePokemon() {
+        selectedPokemonIdx = 0;
         for (int i = 0; i < 6; i++) {
             if (pokemon[i] == null) continue;
             if (pokemon[i].getHealth() == 0) continue;
             selectedPokemonIdx = i;
             break;
         }
-        //TODO
+    }
+
+    private static void appendPokemonList(StringBuilder json, Pokemon[] pokemonList) {
+        for (int i = 0; i < pokemonList.length; i++) {
+            if (i > 0) json.append(", ");
+            appendPokemon(json, pokemonList[i]);
+        }
+    }
+
+    private static void appendPokemon(StringBuilder json, Pokemon p) {
+        if (p == null) {
+            json.append("null");
+            return;
+        }
+
+        json.append("{\"id\":").append(p.id)
+            .append(",\"health\":").append(p.getHealth())
+            .append(",\"individualValue\":").append(p.getIndividualValue())
+            .append(",\"xp\":").append(p.getXp())
+            .append(",\"skillIds\":[");
+        for (int i = 0; i < 4; i++) {
+            if (i > 0) json.append(',');
+            Skill skill = p.getPokemonSkill(i);
+            json.append(skill == null ? 0 : skill.id);
+        }
+        json.append("]}");
+    }
+
+    private static void appendCountMap(StringBuilder json, Map<Integer, Integer> counts) {
+        json.append('{');
+        boolean first = true;
+        for (Map.Entry<Integer, Integer> count : counts.entrySet()) {
+            if (!first) json.append(',');
+            json.append('"').append(count.getKey()).append("\":").append(count.getValue());
+            first = false;
+        }
+        json.append('}');
+    }
+
+    private static Pokemon[] readPokemonArray(Object value, int length) {
+        List<Object> values = asList(value);
+        Pokemon[] result = new Pokemon[length];
+        for (int i = 0; i < values.size() && i < length; i++) {
+            result[i] = readPokemon(values.get(i));
+        }
+        return result;
+    }
+
+    private static List<Pokemon> readPokemonList(Object value) {
+        List<Object> values = asList(value);
+        List<Pokemon> result = new ArrayList<>();
+        for (Object pokemonValue : values) {
+            Pokemon p = readPokemon(pokemonValue);
+            if (p != null) result.add(p);
+        }
+        return result;
+    }
+
+    private static Pokemon readPokemon(Object value) {
+        if (value == null) return null;
+        Map<String, Object> values = asObject(value);
+        int id = intValue(values.get("id"));
+        if (id <= 0 || id >= Pokemon.NAME_TABLE.length) {
+            throw new IllegalArgumentException("Invalid Pokemon id: " + id);
+        }
+
+        Skill[] skills = new Skill[4];
+        List<Object> skillIds = asList(values.get("skillIds"));
+        for (int i = 0; i < skills.length; i++) {
+            skills[i] = Skill.get(i < skillIds.size() ? intValue(skillIds.get(i)) : 0);
+        }
+        Pokemon p = new Pokemon(
+            id,
+            0,
+            intValue(values.get("individualValue")),
+            intValue(values.get("xp")),
+            skills
+        );
+        p.setHealth(intValue(values.get("health")));
+        return p;
+    }
+
+    private static HashMap<Integer, Integer> readCountMap(Object value) {
+        Map<String, Object> values = asObject(value);
+        HashMap<Integer, Integer> result = new HashMap<>();
+        for (Map.Entry<String, Object> entry : values.entrySet()) {
+            result.put(Integer.parseInt(entry.getKey()), intValue(entry.getValue()));
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> asObject(Object value) {
+        if (!(value instanceof Map)) throw new IllegalArgumentException("Expected JSON object");
+        return (Map<String, Object>) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> asList(Object value) {
+        if (!(value instanceof List)) throw new IllegalArgumentException("Expected JSON array");
+        return (List<Object>) value;
+    }
+
+    private static int intValue(Object value) {
+        if (!(value instanceof Number)) throw new IllegalArgumentException("Expected JSON number");
+        return ((Number) value).intValue();
+    }
+
+    private static class JsonParser {
+        private final String value;
+        private int position = 0;
+
+        JsonParser(String value) {
+            this.value = value;
+        }
+
+        Object parse() {
+            Object parsed = readValue();
+            skipWhitespace();
+            if (position != value.length()) throw error("Unexpected trailing content");
+            return parsed;
+        }
+
+        private Object readValue() {
+            skipWhitespace();
+            if (position >= value.length()) throw error("Unexpected end of JSON");
+            char next = value.charAt(position);
+            if (next == '{') return readObject();
+            if (next == '[') return readArray();
+            if (next == '"') return readString();
+            if (next == 'n') return readNull();
+            if (next == '-' || Character.isDigit(next)) return readNumber();
+            throw error("Unexpected character");
+        }
+
+        private Map<String, Object> readObject() {
+            HashMap<String, Object> result = new HashMap<>();
+            position++;
+            skipWhitespace();
+            if (consume('}')) return result;
+            while (true) {
+                skipWhitespace();
+                if (position >= value.length() || value.charAt(position) != '"') {
+                    throw error("Expected object key");
+                }
+                String key = readString();
+                skipWhitespace();
+                expect(':');
+                result.put(key, readValue());
+                skipWhitespace();
+                if (consume('}')) return result;
+                expect(',');
+            }
+        }
+
+        private List<Object> readArray() {
+            List<Object> result = new ArrayList<>();
+            position++;
+            skipWhitespace();
+            if (consume(']')) return result;
+            while (true) {
+                result.add(readValue());
+                skipWhitespace();
+                if (consume(']')) return result;
+                expect(',');
+            }
+        }
+
+        private String readString() {
+            StringBuilder result = new StringBuilder();
+            expect('"');
+            while (position < value.length()) {
+                char current = value.charAt(position++);
+                if (current == '"') return result.toString();
+                if (current != '\\') {
+                    result.append(current);
+                    continue;
+                }
+                if (position >= value.length()) throw error("Invalid string escape");
+                char escape = value.charAt(position++);
+                switch (escape) {
+                    case '"': result.append('"'); break;
+                    case '\\': result.append('\\'); break;
+                    case '/': result.append('/'); break;
+                    case 'b': result.append('\b'); break;
+                    case 'f': result.append('\f'); break;
+                    case 'n': result.append('\n'); break;
+                    case 'r': result.append('\r'); break;
+                    case 't': result.append('\t'); break;
+                    case 'u':
+                        if (position + 4 > value.length()) throw error("Invalid unicode escape");
+                        result.append((char) Integer.parseInt(value.substring(position, position + 4), 16));
+                        position += 4;
+                        break;
+                    default: throw error("Invalid string escape");
+                }
+            }
+            throw error("Unterminated string");
+        }
+
+        private Object readNumber() {
+            int start = position;
+            if (value.charAt(position) == '-') position++;
+            while (position < value.length() && Character.isDigit(value.charAt(position))) position++;
+            try {
+                return Long.parseLong(value.substring(start, position));
+            } catch (NumberFormatException e) {
+                throw error("Invalid number");
+            }
+        }
+
+        private Object readNull() {
+            if (!value.startsWith("null", position)) throw error("Invalid null");
+            position += 4;
+            return null;
+        }
+
+        private boolean consume(char expected) {
+            if (position < value.length() && value.charAt(position) == expected) {
+                position++;
+                return true;
+            }
+            return false;
+        }
+
+        private void expect(char expected) {
+            if (!consume(expected)) throw error("Expected '" + expected + "'");
+        }
+
+        private void skipWhitespace() {
+            while (position < value.length() && Character.isWhitespace(value.charAt(position))) position++;
+        }
+
+        private IllegalArgumentException error(String message) {
+            return new IllegalArgumentException(message + " at position " + position);
+        }
     }
 
     public void startLoop() {
@@ -100,6 +386,16 @@ public class GameManager {
                     raiseEvent(Event.newTextEvent(e.damage + "의 대미지를 입혔다!"));
                     raiseEvent(Event.newTurnEndEvent());
                     break;
+                case Event.EVENT_TYPE.SKILL:
+                    if (e.skill == null || e.skill.id == 0 || getPP() < e.skill.pp) {
+                        raiseEvent(Event.newTextEvent("스킬을 사용할 PP가 부족하다!"));
+                        raiseEvent(Event.newTurnEndEvent());
+                        break;
+                    }
+                    addPP(-e.skill.pp);
+                    e.skill.use.accept(getCurrentPokemon(), enemyPokemon);
+                    raiseEvent(Event.newTurnEndEvent());
+                    break;
                 case Event.EVENT_TYPE.CLEAR_EVENT_QUEUE:
                     eventList.clear();
                     break;
@@ -126,7 +422,6 @@ public class GameManager {
                     }
                     break;
                 case Event.EVENT_TYPE.ENEMY_DEAD:
-                    // TODO CALCULATE XP
                     giveDefeatDrop();
                     raiseEvent(Event.newBattleEndEvent(enemyPokemon.getXp() / 30 + enemyPokemon.getLevel()));
                     break;
@@ -187,6 +482,7 @@ public class GameManager {
                     break;
                 case Event.EVENT_TYPE.TURN_START:
                 case Event.EVENT_TYPE.NOTHING:
+                case Event.EVENT_TYPE.START_POKEMON_EVENT:
                 case Event.EVENT_TYPE.TEXT:
                     break;
                 default:
@@ -240,6 +536,23 @@ public class GameManager {
 
     public static Pokemon getPokemon(int idx) {
         return getInstance().pokemon[idx];
+    }
+
+    public static void setStartingPokemon(Pokemon starter) {
+        GameManager gm = getInstance();
+        gm.pokemon = new Pokemon[6];
+        gm.pokemon[0] = starter;
+        gm.selectedPokemonIdx = 0;
+        gm.itemCount.clear();
+        gm.itemCount.put(1, 3);
+        gm.itemCount.put(4, 3);
+        gm.status.deActivate();
+        gm.status = Status.get(0);
+        gm.enemyStatus.deActivate();
+        gm.enemyStatus = Status.get(0);
+        gm.currentPokemonCanAct = true;
+        gm.enemyPokemonCanAct = true;
+        gm.pp = 0;
     }
 
     public static void setEnemyStatus(Status s) {
@@ -318,16 +631,6 @@ public class GameManager {
             Item item = items.get(random.nextInt(items.size()));
             itemCount.put(item.id, getItemCount(item.id) + 1);
             raiseEvent(Event.newTextEvent(item.name + "을/를 획득했다!"));
-        } else if (dropRoll < 40) {
-            List<Equipment> equipments = new ArrayList<>();
-            for (Equipment equipment : Equipment.EQUIPMENT_TABLE) {
-                if (equipment.id != 0) equipments.add(equipment);
-            }
-            if (equipments.isEmpty()) return;
-            Equipment equipment = equipments.get(random.nextInt(equipments.size()));
-            int currentCount = equipmentCount.containsKey(equipment.id) ? equipmentCount.get(equipment.id) : 0;
-            equipmentCount.put(equipment.id, currentCount + 1);
-            raiseEvent(Event.newTextEvent(equipment.name + "을/를 획득했다!"));
         }
     }
 

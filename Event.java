@@ -17,6 +17,7 @@ public class Event {
         BATTLE_END,         // xp
         IN_BOX,             // idx (=selectedPokemonIdx)
         OUT_BOX,            // pokemon, idx (=selectedPokemonIdx)
+        START_POKEMON_EVENT,// choose starting pokemon
         TEXT,               // show text
         DELAY,              // milliseconds
         EXIT,               // 
@@ -25,7 +26,6 @@ public class Event {
 
     public EVENT_TYPE type;
     public Item item = null;
-    public Equipment equipment = null;
     public Integer idx = null, damage = null, xp = null, milliseconds = null;
     public Pokemon pokemon = null;
     public String text = null;
@@ -142,6 +142,12 @@ public class Event {
         e.type = EVENT_TYPE.OUT_BOX;
         e.pokemon = pokemon;
         e.idx = idx;
+        return e;
+    }
+
+    public static Event newStartPokemonEvent() {
+        Event e = new Event();
+        e.type = EVENT_TYPE.START_POKEMON_EVENT;
         return e;
     }
 

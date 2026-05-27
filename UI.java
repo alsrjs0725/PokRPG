@@ -237,7 +237,15 @@ public class UI extends JFrame {
                     button[1].addActionListener(new ActionListener() {
                         public void actionPerformed(ActionEvent e){
                             setVisible(false);
-                            // TODO
+                            UI.getInstance().mainScreen.mainArea.selectSkill((Skill skill) -> {
+                                UI.getInstance().mainScreen.mainArea.bs.setVisible(true);
+                                if (!GameManager.canCurrentPokemonAct()) {
+                                    GameManager.raiseEvent(Event.newTextEvent(GameManager.getCurrentPokemon().name + "은/는 움직일 수 없다!"));
+                                    GameManager.raiseEvent(Event.newTurnEndEvent());
+                                    return;
+                                }
+                                GameManager.raiseEvent(Event.newSkillEvent(skill));
+                            });
                         }
                     });
                     button[2].addActionListener(new ActionListener() {
@@ -296,11 +304,15 @@ public class UI extends JFrame {
             BattleScreen bs = new BattleScreen();
             SelectPokemonScreen sps = new SelectPokemonScreen();
             SelectItemScreen sis = new SelectItemScreen();
+            SelectSkillScreen sss = new SelectSkillScreen();
+            ChooseStartPokemonScene csps = new ChooseStartPokemonScene();
 
             void hideAllFrame() {
                 bs.setVisible(false);
                 sps.setVisible(false);
                 sis.setVisible(false);
+                sss.setVisible(false);
+                csps.setVisible(false);
             }
 
             MainArea() {
@@ -311,6 +323,101 @@ public class UI extends JFrame {
                 add(bs);
                 add(sps);
                 add(sis);
+                add(sss);
+                add(csps);
+            }
+
+            class ChooseStartPokemonScene extends JPanel {
+                class StarterPokemonButton extends JPanel {
+                    Pokemon pokemon;
+                    JLabel image = new JLabel(), name = new JLabel(), lv = new JLabel();
+                    boolean enabled = true;
+                    MouseAdapter clickListener = new MouseAdapter() {
+                        @Override
+                        public void mouseClicked(MouseEvent e) {
+                            if (!enabled) return;
+                            selectStarter(pokemon);
+                        }
+                    };
+
+                    StarterPokemonButton(Pokemon pokemon) {
+                        this.pokemon = pokemon;
+                        setLayout(null);
+                        setBackground(Color.WHITE);
+                        setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2));
+
+                        image.setHorizontalAlignment(SwingConstants.CENTER);
+                        image.setSize(178, 170);
+                        image.setLocation(0, 15);
+                        name.setText(pokemon.name);
+                        name.setFont(mediumFont);
+                        name.setHorizontalAlignment(SwingConstants.CENTER);
+                        name.setSize(178, 45);
+                        name.setLocation(0, 200);
+                        lv.setText(pokemon.getLevel() + "LV");
+                        lv.setFont(smallFont);
+                        lv.setHorizontalAlignment(SwingConstants.CENTER);
+                        lv.setSize(178, 35);
+                        lv.setLocation(0, 250);
+
+                        add(image);
+                        add(name);
+                        add(lv);
+                        addMouseListener(clickListener);
+                        image.addMouseListener(clickListener);
+                        name.addMouseListener(clickListener);
+                        lv.addMouseListener(clickListener);
+                    }
+
+                    void updateImage() {
+                        image.setIcon(new ImageIcon(POKEMON_IMG[pokemon.id][6].getScaledInstance(150, 150, Image.SCALE_DEFAULT)));
+                    }
+
+                    void setButtonEnabled(boolean value) {
+                        enabled = value;
+                        setBackground(value ? Color.WHITE : Color.LIGHT_GRAY);
+                    }
+                }
+
+                StarterPokemonButton[] starterButtons = new StarterPokemonButton[3];
+
+                ChooseStartPokemonScene() {
+                    setSize(600, 400);
+                    setLocation(0, 0);
+                    setLayout(null);
+                    setBackground(Color.GRAY);
+                    setVisible(false);
+
+                    int[] starterIds = {1, 4, 7};
+                    for (int i = 0; i < starterIds.length; i++) {
+                        starterButtons[i] = new StarterPokemonButton(Pokemon.generate(starterIds[i], 5));
+                        starterButtons[i].setSize(178, 300);
+                        starterButtons[i].setLocation(12 + i * 190, 48);
+                        add(starterButtons[i]);
+                    }
+                }
+
+                void resetButtons() {
+                    for (StarterPokemonButton button : starterButtons) {
+                        button.setButtonEnabled(true);
+                        button.updateImage();
+                    }
+                }
+
+                @Override
+                public void setVisible(boolean aFlag) {
+                    if (aFlag) hideAllFrame();
+                    super.setVisible(aFlag);
+                }
+
+                void selectStarter(Pokemon pokemon) {
+                    for (StarterPokemonButton button : starterButtons) {
+                        button.setButtonEnabled(false);
+                    }
+                    GameManager.setStartingPokemon(pokemon);
+                    GameManager.raiseEvent(Event.newTextEvent(pokemon.name + "을 선택 하였습니다!"));
+                    GameManager.raiseEvent(Event.newBattleStartEvent(Pokemon.generateRandom()));
+                }
             }
 
             class SelectPokemonScreen extends JPanel {
@@ -449,6 +556,7 @@ public class UI extends JFrame {
                     GameManager.registEventListener((Event e) -> {  // event 처리
                         switch (e.type) { // TODO SKILL CHANGE DEAD AND MORE
                             case Event.EVENT_TYPE.ATTACK:
+                            case Event.EVENT_TYPE.SKILL:
                                 x += 10;
                                 repaint();
                                 sleep(100);
@@ -489,10 +597,13 @@ public class UI extends JFrame {
                             case Event.EVENT_TYPE.BATTLE_START: 
                                 setVisible(true);
                                 break;
-                                case Event.EVENT_TYPE.CHANGE:
-                                    setVisible(true);
-                                    // TODO ADD MOTION
-                                    break;
+                            case Event.EVENT_TYPE.CHANGE:
+                                setVisible(true);
+                                // TODO ADD MOTION
+                                break;
+                            case Event.EVENT_TYPE.START_POKEMON_EVENT:
+                                chooseStartPokemon();
+                                break;
                             case Event.EVENT_TYPE.TURN_START:
                                 UI.getInstance().mainScreen.mainArea.bs.setVisible(true);
                                 UI.getInstance().mainScreen.textBox.bp.setVisible(true);
@@ -546,6 +657,52 @@ public class UI extends JFrame {
                     g.setColor(Color.GRAY);
                     g.fillRect(332 + 216 * GameManager.getCurrentPokemon().getHealth() / GameManager.getCurrentPokemon().getMaxHealth(), 275, 216 * visibleHpDiff / GameManager.getCurrentPokemon().getMaxHealth(), 5);
                     g.fillRect(52 + 216 * enemyPokemon.getHealth() / enemyPokemon.getMaxHealth(), 85, 216 * visibleEnemyHpDiff / enemyPokemon.getMaxHealth(), 5);
+                }
+            }
+
+            class SelectSkillScreen extends JPanel {
+                JButton[] button = new JButton[4];
+                Consumer<Skill> eventHandler;
+
+                SelectSkillScreen() {
+                    setSize(600, 400);
+                    setLocation(0, 0);
+                    setLayout(null);
+                    setBackground(Color.GRAY);
+                    setVisible(false);
+
+                    for (int i = 0; i < button.length; i++) {
+                        final int skillIndex = i;
+                        button[i] = new JButton();
+                        button[i].setFont(mediumFont);
+                        button[i].setSize(285, 180);
+                        button[i].setLocation(8 + (i % 2) * 295, 10 + (i / 2) * 190);
+                        button[i].addActionListener(new ActionListener() {
+                            public void actionPerformed(ActionEvent e) {
+                                Skill skill = GameManager.getCurrentPokemon().getPokemonSkill(skillIndex);
+                                if (skill.id == 0 || eventHandler == null) return;
+                                Consumer<Skill> handler = eventHandler;
+                                eventHandler = null;
+                                handler.accept(skill);
+                            }
+                        });
+                        add(button[i]);
+                    }
+                }
+
+                @Override
+                public void setVisible(boolean aFlag) {
+                    if (aFlag) {
+                        hideAllFrame();
+                        Pokemon pokemon = GameManager.getCurrentPokemon();
+                        for (int i = 0; i < button.length; i++) {
+                            Skill skill = pokemon.getPokemonSkill(i);
+                            boolean usable = skill.id != 0 && GameManager.getPP() >= skill.pp;
+                            button[i].setText(skill.id == 0 ? "-" : skill.name + " (" + skill.pp + " PP)");
+                            button[i].setEnabled(usable);
+                        }
+                    }
+                    super.setVisible(aFlag);
                 }
             }
             
@@ -661,6 +818,17 @@ public class UI extends JFrame {
                 sis.setVisible(true);
                 sis.eventHandler = func;
             }
+
+            public void selectSkill(Consumer<Skill> func) {
+                sss.eventHandler = func;
+                sss.setVisible(true);
+            }
+
+            public void chooseStartPokemon() {
+                csps.resetButtons();
+                csps.setVisible(true);
+                GameManager.raiseEvent(Event.newTextEvent("스타팅 포켓몬을 선택하세요"));
+            }
         }
 
         MainScreen() {
@@ -686,7 +854,7 @@ public class UI extends JFrame {
         mainScreen = new MainScreen();
         loadSprite();
         setSize(700, 665);
-        // setResizable(false);
+        setResizable(false);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         add(mainScreen);
@@ -711,15 +879,6 @@ public class UI extends JFrame {
             public void windowOpened(WindowEvent e) {}
 
         });
-        // TODO remove test code
-        // Event.raiseAllEvent();
-        // gm.raiseEvent(Event.newTextEvent("HELLO"));
-        gm.raiseEvent(Event.newBattleStartEvent(Pokemon.generateRandom()));
-        // ui.mainScreen.sleep(10000);
-        ui.mainScreen.mainArea.selectPokemon((Pokemon p) -> {
-            System.out.println(p.name);
-        });
-        // testcode end
         gm.startLoop();
     }
 }
