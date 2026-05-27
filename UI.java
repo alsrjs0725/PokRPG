@@ -224,6 +224,11 @@ public class UI extends JFrame {
                     button[0].addActionListener(new ActionListener() {
                         public void actionPerformed(ActionEvent e){
                             setVisible(false);
+                            if (!GameManager.canCurrentPokemonAct()) {
+                                GameManager.raiseEvent(Event.newTextEvent(GameManager.getCurrentPokemon().name + "은/는 움직일 수 없다!"));
+                                GameManager.raiseEvent(Event.newTurnEndEvent());
+                                return;
+                            }
                             int dmg = GameManager.getCurrentPokemon().getAttackDamage();
                             dmg += new Random().nextInt() % (dmg / 5);
                             GameManager.raiseEvent(Event.newAttackEvent(dmg));
@@ -243,7 +248,7 @@ public class UI extends JFrame {
                                     UI.getInstance().mainScreen.mainArea.selectPokemon((Pokemon p) -> {
                                         GameManager.raiseEvent(Event.newItemEvent(i, p));
                                         UI.getInstance().mainScreen.mainArea.bs.setVisible(true);
-                                    });
+                                    }, i.faintedOnly);
                                 } else {
                                     GameManager.raiseEvent(Event.newItemEvent(i, null));
                                     UI.getInstance().mainScreen.mainArea.bs.setVisible(true);
@@ -256,7 +261,7 @@ public class UI extends JFrame {
                             setVisible(false);
                             UI.getInstance().mainScreen.mainArea.selectPokemon((Pokemon p) -> {
                                 int idx = 0;
-                                for (int i = 0; i < 6; i++) if (GameManager.getInstance().pokemon[i] == p) idx = i;
+                                for (int i = 0; i < 6; i++) if (GameManager.getPokemon(i) == p) idx = i;
                                 GameManager.raiseEvent(Event.newChangeEvent(idx));
                             });
                         }
@@ -309,6 +314,7 @@ public class UI extends JFrame {
             }
 
             class SelectPokemonScreen extends JPanel {
+                boolean faintedOnly = false;
 
                 class PokemonButton extends JPanel {
                     Pokemon pokemon;
@@ -318,8 +324,9 @@ public class UI extends JFrame {
                     MouseAdapter clickListener = new MouseAdapter() {
                         @Override
                         public void mouseClicked(MouseEvent e) {
-                            System.out.println(pokemon.name);
+                            System.out.println(pokemon + " " + _isEnabled);
                             if (!_isEnabled) return;
+                            System.out.println(pokemon.name);
                             callBack.accept(pokemon);
                         }
                     };
@@ -362,7 +369,7 @@ public class UI extends JFrame {
                     }
 
                     void update() {
-                        if (!isEnabled) _isEnabled = false;
+                        _isEnabled = isEnabled;
                         if (pokemon == null) {
                             _isEnabled = false;
                             image.setVisible(false);
@@ -374,10 +381,10 @@ public class UI extends JFrame {
                         }
                         if (pokemon.getHealth() == 0) {
                             image.setIcon(new ImageIcon(GRAY_POKEMON_IMG[pokemon.id][6].getScaledInstance(127, 127, Image.SCALE_DEFAULT)));
-                            _isEnabled = false;
+                            _isEnabled = faintedOnly && _isEnabled;
                         } else {
                             image.setIcon(new ImageIcon(POKEMON_IMG[pokemon.id][6].getScaledInstance(127, 127, Image.SCALE_DEFAULT)));
-                            if (isEnabled) _isEnabled = true;
+                            _isEnabled = _isEnabled && !faintedOnly;
                         }
                         hp.setText(pokemon.getHealth() + "/" + pokemon.getMaxHealth());
                         name.setText(pokemon.name);
@@ -397,7 +404,7 @@ public class UI extends JFrame {
                     setLayout(null);
                     setBackground(Color.GRAY);
                     for (int i = 0; i < 6; i++) {
-                        pokemonButton[i] = new PokemonButton(GameManager.getInstance().pokemon[i], (Pokemon p) -> {
+                        pokemonButton[i] = new PokemonButton(GameManager.getPokemon(i), (Pokemon p) -> {
                             if (eventHandler == null) return;
                             eventHandler.accept(p);
                             eventHandler = null;
@@ -414,7 +421,9 @@ public class UI extends JFrame {
                     if (aFlag) {
                         hideAllFrame();
                         for (int i = 0; i < 6; i++){
-                            pokemonButton[i].setPokemon(GameManager.getInstance().pokemon[i]);
+                            pokemonButton[i].setPokemon(GameManager.getPokemon(i));
+                            if (GameManager.getPokemon(i) == null) continue;
+                            System.out.println("Pokemon Button "+ i + "Setted to " + GameManager.getPokemon(i).name);
                         }
                     }
                     super.setVisible(aFlag);
@@ -422,7 +431,7 @@ public class UI extends JFrame {
             }
 
             class BattleScreen extends JPanel {
-                int x = 0, y = 160, enemyX = 360, enemyY = 0;
+                int x = 0, y = 160, enemyX = 360, enemyY = 0, visibleHpDiff = 0, visibleEnemyHpDiff = 0, hpAtTurnStart = 0, EnemyHpAtTurnStart = 0;
                 double scale = 1.0, enemyScale = 1.0;
 
                 @Override
@@ -491,15 +500,17 @@ public class UI extends JFrame {
                             case Event.EVENT_TYPE.TEXT:
                                 UI.getInstance().mainScreen.textBox.lp.writeText(e.text);
                                 break;
+                            case Event.EVENT_TYPE.DELAY:
+                                break;
                             case Event.EVENT_TYPE.DEAD:
                                 {
                                     boolean flag = false;
                                     for (int i = 0; i < 6; i++) {
-                                        if (GameManager.getInstance().pokemon[i] == null) continue;
-                                        if (GameManager.getInstance().pokemon[i].getHealth() != 0) flag = true;
+                                        if (GameManager.getPokemon(i) == null) continue;
+                                        if (GameManager.getPokemon(i).getHealth() != 0) flag = true;
                                     }
                                     if (flag) selectPokemon((Pokemon p) -> {
-                                        for (int i = 0; i < 6; i++) if (p == GameManager.getInstance().pokemon[i]) GameManager.raiseEvent(Event.newChangeEvent(i));
+                                        for (int i = 0; i < 6; i++) if (p == GameManager.getPokemon(i)) GameManager.raiseEvent(Event.newChangeEvent(i));
                                     });
                                 }
                                 UI.getInstance().mainScreen.leftMenuBar.button[3].setEnabled(false);
@@ -512,25 +523,29 @@ public class UI extends JFrame {
                 
                 public void paint(Graphics g) {
                     super.paint(g);
+                    Pokemon enemyPokemon = GameManager.getEnemyPokemon();
                     g.drawImage(POKEMON_IMG[GameManager.getCurrentPokemon().id][2], x, y, (int) (240 * scale), (int) (240 * scale), null);
-                    g.drawImage(POKEMON_IMG[GameManager.getInstance().enemyPokemon.id][0], enemyX, enemyY, (int) (240 * enemyScale), (int) (240 * enemyScale), null);
+                    g.drawImage(POKEMON_IMG[enemyPokemon.id][0], enemyX, enemyY, (int) (240 * enemyScale), (int) (240 * enemyScale), null);
                     g.setColor(Color.WHITE);
                     g.drawRect(320, 240, 240, 80);
                     g.drawRect(40, 50, 240, 80);
                     g.setFont(mediumFont);
                     g.setColor(Color.BLACK);
                     g.drawString(GameManager.getCurrentPokemon().name, 330, 265);
-                    g.drawString(GameManager.getInstance().enemyPokemon.name, 50, 75);
+                    g.drawString(enemyPokemon.name, 50, 75);
                     g.drawString(GameManager.getCurrentPokemon().getLevel() + "LV", 548 - g.getFontMetrics(mediumFont).stringWidth(GameManager.getCurrentPokemon().getLevel() + "LV"), 265);
-                    g.drawString(GameManager.getInstance().enemyPokemon.getLevel() + "LV", 268 - g.getFontMetrics(mediumFont).stringWidth(GameManager.getInstance().enemyPokemon.getLevel() + "LV"), 75);
+                    g.drawString(enemyPokemon.getLevel() + "LV", 268 - g.getFontMetrics(mediumFont).stringWidth(enemyPokemon.getLevel() + "LV"), 75);
                     g.fillRect(332, 275, 216, 5);
                     g.fillRect(52, 85, 216, 5);
                     g.drawString(GameManager.getCurrentPokemon().getHealth() + "/" + GameManager.getCurrentPokemon().getMaxHealth(), 548 - g.getFontMetrics(mediumFont).stringWidth(GameManager.getCurrentPokemon().getHealth() + "/" + GameManager.getCurrentPokemon().getMaxHealth()), 310);
-                    g.drawString(GameManager.getInstance().enemyPokemon.getHealth() + "/" + GameManager.getInstance().enemyPokemon.getMaxHealth(), 268 - g.getFontMetrics(mediumFont).stringWidth(GameManager.getInstance().enemyPokemon.getHealth() + "/" + GameManager.getInstance().enemyPokemon.getMaxHealth()), 120);
+                    g.drawString(enemyPokemon.getHealth() + "/" + enemyPokemon.getMaxHealth(), 268 - g.getFontMetrics(mediumFont).stringWidth(enemyPokemon.getHealth() + "/" + enemyPokemon.getMaxHealth()), 120);
+                    g.drawString(GameManager.getPP() + "/40 PP", 332, 310);
                     g.setColor(Color.RED);
                     g.fillRect(332, 275, 216 * GameManager.getCurrentPokemon().getHealth() / GameManager.getCurrentPokemon().getMaxHealth(), 5);
-                    g.fillRect(52, 85, 216 * GameManager.getInstance().enemyPokemon.getHealth() / GameManager.getInstance().enemyPokemon.getMaxHealth(), 5);
-
+                    g.fillRect(52, 85, 216 * enemyPokemon.getHealth() / enemyPokemon.getMaxHealth(), 5);
+                    g.setColor(Color.GRAY);
+                    g.fillRect(332 + 216 * GameManager.getCurrentPokemon().getHealth() / GameManager.getCurrentPokemon().getMaxHealth(), 275, 216 * visibleHpDiff / GameManager.getCurrentPokemon().getMaxHealth(), 5);
+                    g.fillRect(52 + 216 * enemyPokemon.getHealth() / enemyPokemon.getMaxHealth(), 85, 216 * visibleEnemyHpDiff / enemyPokemon.getMaxHealth(), 5);
                 }
             }
             
@@ -633,6 +648,11 @@ public class UI extends JFrame {
             }
             
             public void selectPokemon(Consumer<Pokemon> func) {
+                selectPokemon(func, false);
+            }
+
+            public void selectPokemon(Consumer<Pokemon> func, boolean faintedOnly) {
+                sps.faintedOnly = faintedOnly;
                 sps.setVisible(true);
                 sps.eventHandler = func;
             }

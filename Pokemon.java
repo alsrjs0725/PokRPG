@@ -348,7 +348,7 @@ public class Pokemon {
     int getLevel() {return ((int) Math.pow(xp, 0.4)) + 1;}
     void setLevel(int level) {
         int prvLv = getLevel(), prvMaxHealth = getMaxHealth();
-        this.xp = (int) Math.pow(level - 1, 2.5);
+        this.xp = (int) Math.pow(level - 1, 2.5) + 1;
         if (getLevel() > prvLv) {
             setHealth(getHealth() + getMaxHealth() - prvMaxHealth);
         }
@@ -385,9 +385,9 @@ public class Pokemon {
         int minLevel = 2123456789, maxLevel = 0;
         Pokemon p;
         for (int i = 0; i < 6; i++) {
-            if (GameManager.getInstance().pokemon[i] == null) continue;
-            minLevel = Math.min(minLevel, GameManager.getInstance().pokemon[i].getLevel());
-            maxLevel = Math.max(maxLevel, GameManager.getInstance().pokemon[i].getLevel());
+            if (GameManager.getPokemon(i) == null) continue;
+            minLevel = Math.min(minLevel, GameManager.getPokemon(i).getLevel());
+            maxLevel = Math.max(maxLevel, GameManager.getPokemon(i).getLevel());
         }
         p = Pokemon.generate(Math.abs(rd.nextInt()) % (Pokemon.NAME_TABLE.length - 1) + 1, 1);
         p.setLevel(Math.abs(rd.nextInt()) % (maxLevel - minLevel + 10) + 10 + minLevel);

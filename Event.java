@@ -18,6 +18,7 @@ public class Event {
         IN_BOX,             // idx (=selectedPokemonIdx)
         OUT_BOX,            // pokemon, idx (=selectedPokemonIdx)
         TEXT,               // show text
+        DELAY,              // milliseconds
         EXIT,               // 
         CLEAR_EVENT_QUEUE   // BE CAREFUL!
     };
@@ -25,7 +26,7 @@ public class Event {
     public EVENT_TYPE type;
     public Item item = null;
     public Equipment equipment = null;
-    public Integer idx = null, damage = null, xp=null;
+    public Integer idx = null, damage = null, xp = null, milliseconds = null;
     public Pokemon pokemon = null;
     public String text = null;
     public Skill skill;
@@ -148,6 +149,13 @@ public class Event {
         Event e = new Event();
         e.type = EVENT_TYPE.TEXT;
         e.text = text;
+        return e;
+    }
+
+    public static Event newDelayEvent(int milliseconds) {
+        Event e = new Event();
+        e.type = EVENT_TYPE.DELAY;
+        e.milliseconds = Math.max(0, milliseconds);
         return e;
     }
 
