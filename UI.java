@@ -116,7 +116,7 @@ public class UI extends JFrame {
                 });
                 button[2].addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
-                        // TODO
+                        MainScreen.this.mainArea.showPokemonBox();
                     }
                 });
                 button[3].addActionListener(new ActionListener() {
@@ -294,7 +294,6 @@ public class UI extends JFrame {
                 setBackground(Color.WHITE);
                 add(lp);
                 add(bp);
-                //TODO button listener
                 
                 // TextBox init
                 setSize(700, 225);
@@ -314,7 +313,8 @@ public class UI extends JFrame {
             SelectPokemonScreen sps = new SelectPokemonScreen();
             SelectItemScreen sis = new SelectItemScreen();
             SelectSkillScreen sss = new SelectSkillScreen();
-            ChooseStartPokemonScene csps = new ChooseStartPokemonScene();
+            ChooseStartPokemonScreen csps = new ChooseStartPokemonScreen();
+            PokemonBoxScreen pbs = new PokemonBoxScreen();
             PokemonDictionaryScreen pds = new PokemonDictionaryScreen();
             PokemonCenterScreen pcs = new PokemonCenterScreen();
             boolean isPokemonCenter = false;
@@ -325,6 +325,7 @@ public class UI extends JFrame {
                 sis.setVisible(false);
                 sss.setVisible(false);
                 csps.setVisible(false);
+                pbs.setVisible(false);
                 pds.setVisible(false);
                 pcs.setVisible(false);
             }
@@ -339,12 +340,17 @@ public class UI extends JFrame {
                 add(sis);
                 add(sss);
                 add(csps);
+                add(pbs);
                 add(pds);
                 add(pcs);
             }
 
             public void showPokemonCenter() {
                 pcs.setVisible(true);
+            }
+
+            public void showPokemonBox() {
+                pbs.setVisible(true);
             }
 
             class PokemonCenterScreen extends JPanel {
@@ -355,15 +361,10 @@ public class UI extends JFrame {
                     setLocation(0, 0);
                     setBackground(Color.BLACK);
                     setVisible(false);
-
                     try {
-                        centerImage = ImageIO.read(new File("./asset/PokemonCenter.jpg"));
+                        centerImage = ImageIO.read(new File("./asset/PokemonCenter.png"));
                     } catch (IOException e) {
-                        try {
-                            centerImage = ImageIO.read(new File("./asset/PokemonCenter.png"));
-                        } catch (IOException ignored) {
-                            centerImage = null;
-                        }
+                        centerImage = null;
                     }
                 }
 
@@ -394,6 +395,212 @@ public class UI extends JFrame {
                         g.setFont(mediumFont);
                         g.drawString("PokemonCenter image not found", 130, 200);
                     }
+                }
+            }
+
+            class PokemonBoxScreen extends JPanel {
+                class PokemonSlotButton extends JPanel {
+                    private final Pokemon pokemon;
+                    private final boolean partySlot;
+                    private final int partyIndex;
+
+                    PokemonSlotButton(Pokemon pokemon, boolean partySlot, int partyIndex) {
+                        this.pokemon = pokemon;
+                        this.partySlot = partySlot;
+                        this.partyIndex = partyIndex;
+                        setLayout(new BorderLayout(6, 6));
+                        setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2));
+                        setBackground(Color.WHITE);
+
+                        if (pokemon == null) {
+                            JLabel emptyLabel = new JLabel("빈 자리", SwingConstants.CENTER);
+                            emptyLabel.setFont(smallFont);
+                            add(emptyLabel, BorderLayout.CENTER);
+                            setBackground(Color.GRAY);
+                            setPreferredSize(partySlot ? new Dimension(84, 118) : new Dimension(270, 118));
+                            return;
+                        }
+
+                        JLabel imageLabel = new JLabel();
+                        imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                        imageLabel.setIcon(new ImageIcon(POKEMON_IMG[pokemon.id][6].getScaledInstance(partySlot ? 56 : 72, partySlot ? 56 : 72, Image.SCALE_DEFAULT)));
+
+                        JLabel levelLabel = new JLabel("Lv. " + pokemon.getLevel(), SwingConstants.CENTER);
+                        levelLabel.setFont(smallFont);
+
+                        if (partySlot) {
+                            JPanel partyInfoPanel = new JPanel(new GridLayout(2, 1));
+                            partyInfoPanel.setOpaque(false);
+                            partyInfoPanel.add(imageLabel);
+                            partyInfoPanel.add(levelLabel);
+                            add(partyInfoPanel, BorderLayout.CENTER);
+                            setPreferredSize(new Dimension(84, 118));
+                        } else {
+                            JLabel nameLabel = new JLabel(pokemon.name, SwingConstants.CENTER);
+                            nameLabel.setFont(smallFont);
+
+                            JPanel leftPanel = new JPanel(new GridBagLayout());
+                            leftPanel.setOpaque(false);
+                            GridBagConstraints leftConstraints = new GridBagConstraints();
+                            leftConstraints.gridx = 0;
+                            leftConstraints.fill = GridBagConstraints.BOTH;
+                            leftConstraints.weightx = 1.0;
+
+                            leftConstraints.gridy = 0;
+                            leftConstraints.weighty = 2.0;
+                            leftPanel.add(imageLabel, leftConstraints);
+
+                            leftConstraints.gridy = 1;
+                            leftConstraints.weighty = 1.0;
+                            leftPanel.add(levelLabel, leftConstraints);
+
+                            leftConstraints.gridy = 2;
+                            leftConstraints.weighty = 1.0;
+                            leftPanel.add(nameLabel, leftConstraints);
+
+                            leftPanel.setPreferredSize(new Dimension(150, 118));
+
+                            JPanel skillPanel = new JPanel(new GridLayout(4, 1, 0, 2));
+                            skillPanel.setOpaque(false);
+                            skillPanel.add(createSkillLabel(pokemon, 0));
+                            skillPanel.add(createSkillLabel(pokemon, 1));
+                            skillPanel.add(createSkillLabel(pokemon, 2));
+                            skillPanel.add(createSkillLabel(pokemon, 3));
+                            skillPanel.setPreferredSize(new Dimension(110, 118));
+
+                            add(leftPanel, BorderLayout.WEST);
+                            add(skillPanel, BorderLayout.CENTER);
+                            setPreferredSize(new Dimension(280, 118));
+                        }
+
+                        MouseAdapter clickListener = new MouseAdapter() {
+                            @Override
+                            public void mouseClicked(MouseEvent e) {
+                                handleClick();
+                            }
+                        };
+                        addMouseListener(clickListener);
+                        imageLabel.addMouseListener(clickListener);
+                        levelLabel.addMouseListener(clickListener);
+                        if (partySlot) {
+                            for (Component component : ((Container) imageLabel.getParent()).getComponents()) {
+                                component.addMouseListener(clickListener);
+                            }
+                        } else {
+                            for (Component component : getComponents()) {
+                                component.addMouseListener(clickListener);
+                                if (component instanceof Container) {
+                                    for (Component child : ((Container) component).getComponents()) {
+                                        child.addMouseListener(clickListener);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    private void handleClick() {
+                        if (pokemon == null) return;
+                        if (partySlot) {
+                            if (GameManager.getPartyPokemonCount() <= 1) {
+                                GameManager.raiseEvent(Event.newTextEvent("최소 한마리 이상 선출되어 있어야 합니다"));
+                                return;
+                            }
+                            GameManager.raiseEvent(Event.newInBoxEvent(partyIndex));
+                            return;
+                        }
+
+                        int emptySlot = findEmptyPartySlot();
+                        if (emptySlot == -1) {
+                            GameManager.raiseEvent(Event.newTextEvent("남은 자리가 없습니다"));
+                            return;
+                        }
+                        GameManager.raiseEvent(Event.newOutBoxEvent(pokemon, emptySlot));
+                    }
+                }
+
+                JScrollPane scrollPane = new JScrollPane();
+                JPanel contentPanel = new JPanel();
+                JPanel partyRow = new JPanel(new GridLayout(1, 6, 6, 6));
+                JPanel boxGrid = new JPanel(new GridLayout(0, 2, 8, 8));
+
+                PokemonBoxScreen() {
+                    setSize(600, 400);
+                    setLocation(0, 0);
+                    setLayout(new BorderLayout());
+                    setBackground(Color.GRAY);
+
+                    contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+                    contentPanel.setBorder(new EmptyBorder(8, 8, 8, 8));
+                    contentPanel.setBackground(Color.GRAY);
+
+                    partyRow.setOpaque(false);
+                    boxGrid.setOpaque(false);
+
+                    scrollPane.setViewportView(contentPanel);
+                    scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+                    scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+                    scrollPane.setBorder(null);
+
+                    contentPanel.add(partyRow);
+                    contentPanel.add(Box.createVerticalStrut(16));
+                    contentPanel.add(boxGrid);
+                    add(scrollPane, BorderLayout.CENTER);
+
+                    GameManager.registEventListener((Event e) -> {
+                        if (!isVisible()) return;
+                        if (e.type == Event.EVENT_TYPE.NOTHING) refresh();
+                    });
+
+                    refresh();
+                    setVisible(false);
+                }
+
+                private JLabel createSkillLabel(Pokemon pokemon, int skillIndex) {
+                    Skill skill = pokemon.getPokemonSkill(skillIndex);
+                    String text = (skill == null || skill.id == 0) ? "-" : skill.name;
+                    JLabel skillLabel = new JLabel(text, SwingConstants.LEFT);
+                    skillLabel.setFont(smallFont);
+                    return skillLabel;
+                }
+
+                private int findEmptyPartySlot() {
+                    for (int i = 0; i < 6; i++) {
+                        if (GameManager.getPokemon(i) == null) return i;
+                    }
+                    return -1;
+                }
+
+                private void refresh() {
+                    partyRow.removeAll();
+                    boxGrid.removeAll();
+
+                    for (int i = 0; i < 6; i++) {
+                        partyRow.add(new PokemonSlotButton(GameManager.getPokemon(i), true, i));
+                    }
+
+                    for (Pokemon pokemon : GameManager.getBoxPokemons()) {
+                        boxGrid.add(new PokemonSlotButton(pokemon, false, -1));
+                    }
+
+                    partyRow.revalidate();
+                    partyRow.repaint();
+                    boxGrid.revalidate();
+                    boxGrid.repaint();
+                    contentPanel.revalidate();
+                    contentPanel.repaint();
+                    revalidate();
+                    repaint();
+                }
+
+                @Override
+                public void setVisible(boolean aFlag) {
+                    if (aFlag) {
+                        hideAllFrame();
+                        refresh();
+                        MainScreen.this.leftMenuBar.button[2].setEnabled(false);
+                        MainScreen.this.leftMenuBar.button[3].setEnabled(true);
+                    }
+                    super.setVisible(aFlag);
                 }
             }
 
@@ -473,7 +680,7 @@ public class UI extends JFrame {
                 }
             }
 
-            class ChooseStartPokemonScene extends JPanel {
+            class ChooseStartPokemonScreen extends JPanel {
                 class StarterPokemonButton extends JPanel {
                     Pokemon pokemon;
                     JLabel image = new JLabel(), name = new JLabel(), lv = new JLabel();
@@ -527,7 +734,7 @@ public class UI extends JFrame {
 
                 StarterPokemonButton[] starterButtons = new StarterPokemonButton[3];
 
-                ChooseStartPokemonScene() {
+                ChooseStartPokemonScreen() {
                     setSize(600, 400);
                     setLocation(0, 0);
                     setLayout(null);
@@ -553,6 +760,8 @@ public class UI extends JFrame {
                 @Override
                 public void setVisible(boolean aFlag) {
                     if (aFlag) hideAllFrame();
+                    MainScreen.this.leftMenuBar.button[1].setEnabled(!aFlag);
+                    MainScreen.this.leftMenuBar.button[0].setEnabled(!aFlag);
                     super.setVisible(aFlag);
                 }
 
@@ -597,10 +806,10 @@ public class UI extends JFrame {
                         name.setLocation(127,0);
                         lv.setSize(56,57);
                         lv.setLocation(239,70);
-                        image.setVisible(rootPaneCheckingEnabled);
-                        hp.setVisible(rootPaneCheckingEnabled);
-                        name.setVisible(rootPaneCheckingEnabled);
-                        lv.setVisible(rootPaneCheckingEnabled);
+                        image.setVisible(true);
+                        hp.setVisible(true);
+                        name.setVisible(true);
+                        lv.setVisible(true);
                         add(lv);
                         add(name);
                         add(image);
@@ -609,6 +818,7 @@ public class UI extends JFrame {
                         name.addMouseListener(clickListener);
                         lv.addMouseListener(clickListener);
                         hp.addMouseListener(clickListener);
+                        addMouseListener(clickListener);
                     }
 
                     void setPokemon(Pokemon p) {
@@ -632,6 +842,11 @@ public class UI extends JFrame {
                             setBackground(Color.GRAY);
                             return;
                         }
+                        image.setVisible(true);
+                        hp.setVisible(true);
+                        name.setVisible(true);
+                        lv.setVisible(true);
+
                         if (pokemon.getHealth() == 0) {
                             image.setIcon(new ImageIcon(GRAY_POKEMON_IMG[pokemon.id][6].getScaledInstance(127, 127, Image.SCALE_DEFAULT)));
                             _isEnabled = faintedOnly && _isEnabled;
@@ -682,7 +897,7 @@ public class UI extends JFrame {
             }
 
             class BattleScreen extends JPanel {
-                int x = 0, y = 160, enemyX = 360, enemyY = 0, visibleHpDiff = 0, visibleEnemyHpDiff = 0, hpAtTurnStart = 0, EnemyHpAtTurnStart = 0;
+                int x = 0, y = 160, enemyX = 360, enemyY = 0;
                 double scale = 1.0, enemyScale = 1.0;
 
                 @Override
@@ -781,6 +996,8 @@ public class UI extends JFrame {
                                         for (int i = 0; i < 6; i++) if (p == GameManager.getPokemon(i)) GameManager.raiseEvent(Event.newChangeEvent(i));
                                     });
                                 }
+                                MainScreen.this.leftMenuBar.button[0].setEnabled(false);
+                                MainScreen.this.leftMenuBar.button[1].setEnabled(false);
                                 MainScreen.this.leftMenuBar.button[3].setEnabled(false);
                                 break;
                                 
@@ -795,25 +1012,22 @@ public class UI extends JFrame {
                     g.drawImage(POKEMON_IMG[GameManager.getCurrentPokemon().id][2], x, y, (int) (240 * scale), (int) (240 * scale), null);
                     g.drawImage(POKEMON_IMG[enemyPokemon.id][0], enemyX, enemyY, (int) (240 * enemyScale), (int) (240 * enemyScale), null);
                     g.setColor(Color.WHITE);
-                    g.drawRect(320, 240, 240, 80);
+                    g.drawRect(320, 270, 240, 80);
                     g.drawRect(40, 50, 240, 80);
                     g.setFont(mediumFont);
                     g.setColor(Color.BLACK);
-                    g.drawString(GameManager.getCurrentPokemon().name, 330, 265);
+                    g.drawString(GameManager.getCurrentPokemon().name, 330, 295);
                     g.drawString(enemyPokemon.name, 50, 75);
-                    g.drawString(GameManager.getCurrentPokemon().getLevel() + "LV", 548 - g.getFontMetrics(mediumFont).stringWidth(GameManager.getCurrentPokemon().getLevel() + "LV"), 265);
+                    g.drawString(GameManager.getCurrentPokemon().getLevel() + "LV", 548 - g.getFontMetrics(mediumFont).stringWidth(GameManager.getCurrentPokemon().getLevel() + "LV"), 295);
                     g.drawString(enemyPokemon.getLevel() + "LV", 268 - g.getFontMetrics(mediumFont).stringWidth(enemyPokemon.getLevel() + "LV"), 75);
-                    g.fillRect(332, 275, 216, 5);
+                    g.fillRect(332, 305, 216, 5);
                     g.fillRect(52, 85, 216, 5);
-                    g.drawString(GameManager.getCurrentPokemon().getHealth() + "/" + GameManager.getCurrentPokemon().getMaxHealth(), 548 - g.getFontMetrics(mediumFont).stringWidth(GameManager.getCurrentPokemon().getHealth() + "/" + GameManager.getCurrentPokemon().getMaxHealth()), 310);
+                    g.drawString(GameManager.getCurrentPokemon().getHealth() + "/" + GameManager.getCurrentPokemon().getMaxHealth(), 548 - g.getFontMetrics(mediumFont).stringWidth(GameManager.getCurrentPokemon().getHealth() + "/" + GameManager.getCurrentPokemon().getMaxHealth()), 340);
                     g.drawString(enemyPokemon.getHealth() + "/" + enemyPokemon.getMaxHealth(), 268 - g.getFontMetrics(mediumFont).stringWidth(enemyPokemon.getHealth() + "/" + enemyPokemon.getMaxHealth()), 120);
-                    g.drawString(GameManager.getPP() + "/40 PP", 332, 310);
+                    g.drawString(GameManager.getPP() + "/40 PP", 332, 340);
                     g.setColor(Color.RED);
-                    g.fillRect(332, 275, 216 * GameManager.getCurrentPokemon().getHealth() / GameManager.getCurrentPokemon().getMaxHealth(), 5);
+                    g.fillRect(332, 305, 216 * GameManager.getCurrentPokemon().getHealth() / GameManager.getCurrentPokemon().getMaxHealth(), 5);
                     g.fillRect(52, 85, 216 * enemyPokemon.getHealth() / enemyPokemon.getMaxHealth(), 5);
-                    g.setColor(Color.GRAY);
-                    g.fillRect(332 + 216 * GameManager.getCurrentPokemon().getHealth() / GameManager.getCurrentPokemon().getMaxHealth(), 275, 216 * visibleHpDiff / GameManager.getCurrentPokemon().getMaxHealth(), 5);
-                    g.fillRect(52 + 216 * enemyPokemon.getHealth() / enemyPokemon.getMaxHealth(), 85, 216 * visibleEnemyHpDiff / enemyPokemon.getMaxHealth(), 5);
                 }
             }
 

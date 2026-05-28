@@ -19,7 +19,7 @@ public class GameManager {
     private static final String SAVE_FILE = "./save.json";
 
     // save Variables
-    List<Pokemon> box = new ArrayList<>();
+    Set<Pokemon> box = new HashSet<>();
     private Pokemon pokemon[] = new Pokemon[6];
     HashMap<Integer, Integer> itemCount = new HashMap<>();
     Set<Integer> pokemonDict = new HashSet<>();
@@ -48,14 +48,19 @@ public class GameManager {
     }
 
     public void save() {
-        boolean flag = true;
-        for (int i = 0; i < 6; i++) if (pokemon[i] != null) flag = false;
-        if (flag) return;
+        boolean hasPokemon = false;
+        for (int i = 0; i < 6; i++) {
+            if (pokemon[i] != null) {
+                hasPokemon = true;
+                break;
+            }
+        }
+        if (!hasPokemon && box.isEmpty() && itemCount.isEmpty() && pokemonDict.isEmpty()) return;
         StringBuilder json = new StringBuilder();
         json.append("{\n  \"party\": [");
         appendPokemonList(json, pokemon);
         json.append("],\n  \"box\": [");
-        appendPokemonList(json, box.toArray(new Pokemon[0]));
+        appendPokemonCollection(json, getBoxPokemons());
         json.append("],\n  \"itemCount\": ");
         appendCountMap(json, itemCount);
         json.append(",\n  \"pokemonDict\": ");
@@ -83,7 +88,7 @@ public class GameManager {
                 Set<Integer> loadedPokemonDict = readIntSet(root.get("pokemonDict"));
 
                 pokemon = loadedPokemon;
-                box = loadedBox;
+                box = new HashSet<>(loadedBox);
                 itemCount = loadedItems;
                 pokemonDict = loadedPokemonDict;
                 raiseEvent(Event.newBattleStartEvent(Pokemon.generateRandom()));
@@ -131,6 +136,15 @@ public class GameManager {
         for (int i = 0; i < pokemonList.length; i++) {
             if (i > 0) json.append(", ");
             appendPokemon(json, pokemonList[i]);
+        }
+    }
+
+    private static void appendPokemonCollection(StringBuilder json, Iterable<Pokemon> pokemonList) {
+        boolean first = true;
+        for (Pokemon p : pokemonList) {
+            if (!first) json.append(", ");
+            appendPokemon(json, p);
+            first = false;
         }
     }
 
@@ -447,6 +461,12 @@ public class GameManager {
                     selectedPokemonIdx = e.idx;
                     raiseEvent(Event.newTurnEndEvent());
                     break;
+                case Event.EVENT_TYPE.IN_BOX:
+                    if (e.idx != null) movePokemonToBox(e.idx);
+                    break;
+                case Event.EVENT_TYPE.OUT_BOX:
+                    if (e.pokemon != null && e.idx != null) movePokemonFromBox(e.pokemon, e.idx);
+                    break;
                 case Event.EVENT_TYPE.TURN_END:
                     if (enemyPokemon.getHealth() == 0) {
                         raiseEvent(Event.newEnemyDeadEvent());
@@ -647,7 +667,10 @@ public class GameManager {
             placedInParty = true;
             break;
         }
-        if (!placedInParty) box.add(enemyPokemon);
+        if (!placedInParty) {
+            enemyPokemon.setHealth(enemyPokemon.getMaxHealth());
+            box.add(enemyPokemon);
+        }
 
         addPokemonToDict(enemyPokemon);
 
@@ -704,8 +727,67 @@ public class GameManager {
         return getInstance().pokemonDict.contains(id);
     }
 
+    public static List<Pokemon> getBoxPokemons() {
+        GameManager gm = getInstance();
+        List<Pokemon> result = new ArrayList<>(gm.box);
+        result.sort((left, right) -> {
+            int cmp = Integer.compare(left.id, right.id);
+            if (cmp != 0) return cmp;
+            cmp = Integer.compare(left.getLevel(), right.getLevel());
+            if (cmp != 0) return cmp;
+            return Integer.compare(left.getIndividualValue(), right.getIndividualValue());
+        });
+        return result;
+    }
+
+    public static int getPartyPokemonCount() {
+        int count = 0;
+        for (int i = 0; i < 6; i++) {
+            if (getPokemon(i) != null) count++;
+        }
+        return count;
+    }
+
     private void addPokemonToDict(Pokemon pokemon) {
         if (pokemon != null) pokemonDict.add(pokemon.id);
+    }
+
+    private void movePokemonToBox(int idx) {
+        if (idx < 0 || idx >= pokemon.length) return;
+        Pokemon movingPokemon = pokemon[idx];
+        if (movingPokemon == null) return;
+        if (getPartyPokemonCount() <= 1) {
+            raiseEvent(Event.newTextEvent("최소 한마리 이상 선출되어 있어야 합니다"));
+            return;
+        }
+
+        pokemon[idx] = null;
+        box.add(movingPokemon);
+        selectUsablePokemon();
+        raiseEvent(Event.newNothingEvent());
+    }
+
+    private void movePokemonFromBox(Pokemon movingPokemon, int idx) {
+        if (movingPokemon == null || idx < 0 || idx >= pokemon.length) return;
+
+        int emptyIdx = -1;
+        for (int i = 0; i < pokemon.length; i++) {
+            if (pokemon[i] == null) {
+                emptyIdx = i;
+                break;
+            }
+        }
+
+        if (emptyIdx == -1) {
+            raiseEvent(Event.newTextEvent("남은 자리가 없습니다"));
+            return;
+        }
+
+        if (!box.remove(movingPokemon)) return;
+
+        pokemon[emptyIdx] = movingPokemon;
+        selectUsablePokemon();
+        raiseEvent(Event.newNothingEvent());
     }
 }
 
