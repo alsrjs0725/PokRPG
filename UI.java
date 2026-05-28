@@ -101,12 +101,17 @@ public class UI extends JFrame {
 
                 button[0].addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
-                        // TODO
+                        if (MainScreen.this.mainArea.isPokemonCenter) {
+                            MainScreen.this.mainArea.isPokemonCenter = false;
+                            GameManager.raiseEvent(Event.newBattleStartEvent(Pokemon.generateRandom()));
+                        } else {
+                            GameManager.raiseEvent(Event.newMovePokemonCenterEvent());
+                        }
                     }
                 });
                 button[1].addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
-                        UI.getInstance().mainScreen.mainArea.showPokemonDictionary();
+                        MainScreen.this.mainArea.showPokemonDictionary();
                     }
                 });
                 button[2].addActionListener(new ActionListener() {
@@ -116,10 +121,13 @@ public class UI extends JFrame {
                 });
                 button[3].addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
-                        UI ui = UI.getInstance();
-                        ui.mainScreen.mainArea.bs.setVisible(true);
-                        ui.mainScreen.textBox.bp.setVisible(true);
-                        button[3].setEnabled(false);
+                        if (MainScreen.this.mainArea.isPokemonCenter) {
+                            MainScreen.this.mainArea.showPokemonCenter();
+                        } else {
+                            MainScreen.this.mainArea.bs.setVisible(true);
+                            MainScreen.this.textBox.bp.setVisible(true);
+                            button[3].setEnabled(false);
+                        }
                     }
                 });
 
@@ -238,8 +246,8 @@ public class UI extends JFrame {
                     button[1].addActionListener(new ActionListener() {
                         public void actionPerformed(ActionEvent e){
                             setVisible(false);
-                            UI.getInstance().mainScreen.mainArea.selectSkill((Skill skill) -> {
-                                UI.getInstance().mainScreen.mainArea.bs.setVisible(true);
+                            MainScreen.this.mainArea.selectSkill((Skill skill) -> {
+                                MainScreen.this.mainArea.bs.setVisible(true);
                                 if (!GameManager.canCurrentPokemonAct()) {
                                     GameManager.raiseEvent(Event.newTextEvent(GameManager.getCurrentPokemon().name + "은/는 움직일 수 없다!"));
                                     GameManager.raiseEvent(Event.newTurnEndEvent());
@@ -252,15 +260,15 @@ public class UI extends JFrame {
                     button[2].addActionListener(new ActionListener() {
                         public void actionPerformed(ActionEvent e){
                             setVisible(false);
-                            UI.getInstance().mainScreen.mainArea.selectItem((Item i) -> {
+                            MainScreen.this.mainArea.selectItem((Item i) -> {
                                 if (i.selectPokemon) {
-                                    UI.getInstance().mainScreen.mainArea.selectPokemon((Pokemon p) -> {
+                                    MainScreen.this.mainArea.selectPokemon((Pokemon p) -> {
                                         GameManager.raiseEvent(Event.newItemEvent(i, p));
-                                        UI.getInstance().mainScreen.mainArea.bs.setVisible(true);
+                                        MainScreen.this.mainArea.bs.setVisible(true);
                                     }, i.faintedOnly);
                                 } else {
                                     GameManager.raiseEvent(Event.newItemEvent(i, null));
-                                    UI.getInstance().mainScreen.mainArea.bs.setVisible(true);
+                                    MainScreen.this.mainArea.bs.setVisible(true);
                                 }
                             });
                         }
@@ -268,7 +276,7 @@ public class UI extends JFrame {
                     button[3].addActionListener(new ActionListener() {
                         public void actionPerformed(ActionEvent e){
                             setVisible(false);
-                            UI.getInstance().mainScreen.mainArea.selectPokemon((Pokemon p) -> {
+                            MainScreen.this.mainArea.selectPokemon((Pokemon p) -> {
                                 int idx = 0;
                                 for (int i = 0; i < 6; i++) if (GameManager.getPokemon(i) == p) idx = i;
                                 GameManager.raiseEvent(Event.newChangeEvent(idx));
@@ -308,6 +316,8 @@ public class UI extends JFrame {
             SelectSkillScreen sss = new SelectSkillScreen();
             ChooseStartPokemonScene csps = new ChooseStartPokemonScene();
             PokemonDictionaryScreen pds = new PokemonDictionaryScreen();
+            PokemonCenterScreen pcs = new PokemonCenterScreen();
+            boolean isPokemonCenter = false;
 
             void hideAllFrame() {
                 bs.setVisible(false);
@@ -316,6 +326,7 @@ public class UI extends JFrame {
                 sss.setVisible(false);
                 csps.setVisible(false);
                 pds.setVisible(false);
+                pcs.setVisible(false);
             }
 
             MainArea() {
@@ -329,6 +340,70 @@ public class UI extends JFrame {
                 add(sss);
                 add(csps);
                 add(pds);
+                add(pcs);
+            }
+
+            public void showPokemonCenter() {
+                pcs.setVisible(true);
+            }
+
+            class PokemonCenterScreen extends JPanel {
+                BufferedImage centerImage = null;
+
+                PokemonCenterScreen() {
+                    setSize(600, 400);
+                    setLocation(0, 0);
+                    setBackground(Color.BLACK);
+                    setVisible(false);
+
+                    try {
+                        centerImage = ImageIO.read(new File("./asset/PokemonCenter.jpg"));
+                    } catch (IOException e) {
+                        try {
+                            centerImage = ImageIO.read(new File("./asset/PokemonCenter.png"));
+                        } catch (IOException ignored) {
+                            centerImage = null;
+                        }
+                    }
+                }
+
+                @Override
+                public void setVisible(boolean aFlag) {
+                    if (aFlag) {
+                        hideAllFrame();
+                        super.setVisible(true);
+
+                        MainScreen.this.leftMenuBar.button[2].setEnabled(true);
+                        MainScreen.this.leftMenuBar.button[3].setEnabled(false);
+                        MainScreen.this.leftMenuBar.button[0].setText("출격");
+
+                        isPokemonCenter = true;
+                        return;
+                    }
+
+                    boolean wasVisible = isVisible();
+                    super.setVisible(false);
+                    if (!wasVisible) return;
+
+                    isPokemonCenter = false;
+
+                    MainScreen.this.leftMenuBar.button[0].setText("후퇴");
+                    MainScreen.this.leftMenuBar.button[2].setEnabled(false);
+                }
+
+                @Override
+                public void paint(Graphics g) {
+                    super.paint(g);
+                    if (centerImage != null) {
+                        g.drawImage(centerImage, 0, 0, getWidth(), getHeight(), null);
+                    } else {
+                        g.setColor(Color.DARK_GRAY);
+                        g.fillRect(0, 0, getWidth(), getHeight());
+                        g.setColor(Color.WHITE);
+                        g.setFont(mediumFont);
+                        g.drawString("PokemonCenter image not found", 130, 200);
+                    }
+                }
             }
 
             class PokemonDictionaryScreen extends JPanel {
@@ -625,7 +700,7 @@ public class UI extends JFrame {
                 public void setVisible(boolean aFlag) {
                     if (aFlag) hideAllFrame();
                     super.setVisible(aFlag);
-                    UI.getInstance().mainScreen.leftMenuBar.button[3].setEnabled(!aFlag);
+                    MainScreen.this.leftMenuBar.button[3].setEnabled(!aFlag);
                 }
 
                 BattleScreen() {
@@ -684,12 +759,18 @@ public class UI extends JFrame {
                             case Event.EVENT_TYPE.START_POKEMON_EVENT:
                                 chooseStartPokemon();
                                 break;
+                            case Event.EVENT_TYPE.MOVE_POKEMON_CENTER:
+                                MainScreen.this.mainArea.showPokemonCenter();
+                                MainScreen.this.mainArea.isPokemonCenter = true;
+                                GameManager.raiseEvent(Event.newClearEventQueueEvent());
+                                MainScreen.this.textBox.bp.setVisible(false);
+
+                                break;
                             case Event.EVENT_TYPE.TURN_START:
-                                UI.getInstance().mainScreen.mainArea.bs.setVisible(true);
-                                UI.getInstance().mainScreen.textBox.bp.setVisible(true);
+                                MainScreen.this.textBox.bp.setVisible(true);
                                 break;
                             case Event.EVENT_TYPE.TEXT:
-                                UI.getInstance().mainScreen.textBox.lp.writeText(e.text);
+                                MainScreen.this.textBox.lp.writeText(e.text);
                                 break;
                             case Event.EVENT_TYPE.DELAY:
                                 break;
@@ -704,7 +785,7 @@ public class UI extends JFrame {
                                         for (int i = 0; i < 6; i++) if (p == GameManager.getPokemon(i)) GameManager.raiseEvent(Event.newChangeEvent(i));
                                     });
                                 }
-                                UI.getInstance().mainScreen.leftMenuBar.button[3].setEnabled(false);
+                                MainScreen.this.leftMenuBar.button[3].setEnabled(false);
                                 break;
                                 
                             default:
@@ -911,7 +992,7 @@ public class UI extends JFrame {
             public void chooseStartPokemon() {
                 csps.resetButtons();
                 csps.setVisible(true);
-                UI.getInstance().mainScreen.leftMenuBar.button[3].setEnabled(false);
+                MainScreen.this.leftMenuBar.button[3].setEnabled(false);
                 GameManager.raiseEvent(Event.newTextEvent("스타팅 포켓몬을 선택하세요"));
             }
         }
@@ -950,7 +1031,7 @@ public class UI extends JFrame {
 
     public static void main(String args[]) {  // Entry point
         GameManager gm = GameManager.getInstance();
-        UI ui = UI.getInstance();
+        UI ui = new UI();
         ui.addWindowListener(new WindowListener() {
             public void windowActivated(WindowEvent e) {}
             public void windowClosed(WindowEvent e) {}

@@ -407,6 +407,8 @@ public class GameManager {
             switch(e.type) {
                 case Event.EVENT_TYPE.BATTLE_START:
                     enemyPokemon = e.pokemon;
+                    setStatus(Status.get(0));
+                    setEnemyStatus(Status.get(0));
                     raiseEvent(Event.newTextEvent("야생의 " + e.pokemon.name + "을/를 마주쳤다!"));
                     raiseEvent(Event.newTurnStartEvent());
                     break;
@@ -488,13 +490,7 @@ public class GameManager {
                     }
                     if (flag) {
                         raiseEvent(Event.newTextEvent("눈 앞이 캄캄해졌다"));
-                        // TODO 포켓몬 센터로 이동
-                        // TODO 테스트코드 제거
-                        for (int i = 0; i < 6; i++) {
-                            if (pokemon[i] == null) continue;
-                            pokemon[i].setHealth(pokemon[i].getMaxHealth());
-                        }
-                        // 테스트 코드 끝
+                        raiseEvent(Event.newMovePokemonCenterEvent());
                     }
                     break;
                 case Event.EVENT_TYPE.BATTLE_END:
@@ -516,6 +512,10 @@ public class GameManager {
                 case Event.EVENT_TYPE.START_POKEMON_EVENT:
                 case Event.EVENT_TYPE.TEXT:
                     break;
+                case Event.EVENT_TYPE.MOVE_POKEMON_CENTER:
+                    recoverAllPartyPokemon();
+                    setStatus(Status.get(0));
+                    break;
                 default:
                     System.out.println("Unhandled Event in GameManager: " + e.type);
             }
@@ -535,6 +535,13 @@ public class GameManager {
         }
         if (enemyStatus != null && !enemyStatus.isNone() && enemyStatus.shouldClear()) {
             setEnemyStatus(Status.get(0));
+        }
+    }
+
+    private void recoverAllPartyPokemon() {
+        for (int i = 0; i < pokemon.length; i++) {
+            if (pokemon[i] == null) continue;
+            pokemon[i].setHealth(pokemon[i].getMaxHealth());
         }
     }
 

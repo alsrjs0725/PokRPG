@@ -18,6 +18,7 @@ public class Event {
         IN_BOX,             // idx (=selectedPokemonIdx)
         OUT_BOX,            // pokemon, idx (=selectedPokemonIdx)
         START_POKEMON_EVENT,// choose starting pokemon
+        MOVE_POKEMON_CENTER, // move player to pokemon center screen
         TEXT,               // show text
         DELAY,              // milliseconds
         EXIT,               // 
@@ -148,6 +149,12 @@ public class Event {
     public static Event newStartPokemonEvent() {
         Event e = new Event();
         e.type = EVENT_TYPE.START_POKEMON_EVENT;
+        return e;
+    }
+
+    public static Event newMovePokemonCenterEvent() {
+        Event e = new Event();
+        e.type = EVENT_TYPE.MOVE_POKEMON_CENTER;
         return e;
     }
 
