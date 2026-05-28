@@ -376,19 +376,10 @@ public class UI extends JFrame {
                         MainScreen.this.leftMenuBar.button[2].setEnabled(true);
                         MainScreen.this.leftMenuBar.button[3].setEnabled(false);
                         MainScreen.this.leftMenuBar.button[0].setText("출격");
-
-                        isPokemonCenter = true;
                         return;
                     }
 
-                    boolean wasVisible = isVisible();
                     super.setVisible(false);
-                    if (!wasVisible) return;
-
-                    isPokemonCenter = false;
-
-                    MainScreen.this.leftMenuBar.button[0].setText("후퇴");
-                    MainScreen.this.leftMenuBar.button[2].setEnabled(false);
                 }
 
                 @Override
@@ -654,8 +645,6 @@ public class UI extends JFrame {
                         if (_isEnabled) setBackground(Color.WHITE);
                         else setBackground(Color.GRAY);
                     }
-
-                    // TODO POKEMONBUTTON CLICK LISTSER
                 }
 
                 PokemonButton pokemonButton[] = new PokemonButton[6];
@@ -698,9 +687,14 @@ public class UI extends JFrame {
 
                 @Override
                 public void setVisible(boolean aFlag) {
-                    if (aFlag) hideAllFrame();
+                    if (aFlag) {
+                        hideAllFrame();
+                        MainScreen.this.leftMenuBar.button[0].setText("후퇴");
+                        MainScreen.this.leftMenuBar.button[2].setEnabled(false);
+                    }
                     super.setVisible(aFlag);
                     MainScreen.this.leftMenuBar.button[3].setEnabled(!aFlag);
+                    
                 }
 
                 BattleScreen() {
@@ -760,16 +754,18 @@ public class UI extends JFrame {
                                 chooseStartPokemon();
                                 break;
                             case Event.EVENT_TYPE.MOVE_POKEMON_CENTER:
-                                MainScreen.this.mainArea.showPokemonCenter();
                                 MainScreen.this.mainArea.isPokemonCenter = true;
+                                MainScreen.this.mainArea.showPokemonCenter();
                                 GameManager.raiseEvent(Event.newClearEventQueueEvent());
                                 MainScreen.this.textBox.bp.setVisible(false);
 
                                 break;
                             case Event.EVENT_TYPE.TURN_START:
                                 MainScreen.this.textBox.bp.setVisible(true);
+                                MainScreen.this.mainArea.bs.repaint();
                                 break;
                             case Event.EVENT_TYPE.TEXT:
+                                repaint();
                                 MainScreen.this.textBox.lp.writeText(e.text);
                                 break;
                             case Event.EVENT_TYPE.DELAY:
