@@ -9,6 +9,8 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.function.Consumer;
 import java.util.HashMap;
 
@@ -20,6 +22,7 @@ public class GameManager {
     List<Pokemon> box = new ArrayList<>();
     private Pokemon pokemon[] = new Pokemon[6];
     HashMap<Integer, Integer> itemCount = new HashMap<>();
+    Set<Integer> pokemonDict = new HashSet<>();
     
     // runtime Variables (= Don't need to save)
     int selectedPokemonIdx = 0, pp = 0;
@@ -55,6 +58,8 @@ public class GameManager {
         appendPokemonList(json, box.toArray(new Pokemon[0]));
         json.append("],\n  \"itemCount\": ");
         appendCountMap(json, itemCount);
+        json.append(",\n  \"pokemonDict\": ");
+        appendIntSet(json, pokemonDict);
         json.append("\n}\n");
 
         try {
@@ -75,15 +80,19 @@ public class GameManager {
                 Pokemon[] loadedPokemon = readPokemonArray(root.get("party"), pokemon.length);
                 List<Pokemon> loadedBox = readPokemonList(root.get("box"));
                 HashMap<Integer, Integer> loadedItems = readCountMap(root.get("itemCount"));
+                Set<Integer> loadedPokemonDict = readIntSet(root.get("pokemonDict"));
 
                 pokemon = loadedPokemon;
                 box = loadedBox;
                 itemCount = loadedItems;
+                pokemonDict = loadedPokemonDict;
                 raiseEvent(Event.newBattleStartEvent(Pokemon.generateRandom()));
             } catch (IOException | RuntimeException e) {
                 System.err.println("Failed to load save file; using test data: " + e.getMessage());
             }
         } else {
+            pokemon[0] = Pokemon.generate(1, 1);
+            enemyPokemon = Pokemon.generate(1, 1);
             raiseEvent(Event.newStartPokemonEvent());
         }
 
@@ -94,6 +103,7 @@ public class GameManager {
         box.clear();
         pokemon = new Pokemon[6];
         itemCount.clear();
+        pokemonDict.clear();
 
         pokemon[0] = Pokemon.generate(151, 100);
         pokemon[1] = Pokemon.generate(1, 10);
@@ -154,6 +164,17 @@ public class GameManager {
         json.append('}');
     }
 
+    private static void appendIntSet(StringBuilder json, Set<Integer> values) {
+        json.append('[');
+        boolean first = true;
+        for (Integer value : values) {
+            if (!first) json.append(',');
+            json.append(value);
+            first = false;
+        }
+        json.append(']');
+    }
+
     private static Pokemon[] readPokemonArray(Object value, int length) {
         List<Object> values = asList(value);
         Pokemon[] result = new Pokemon[length];
@@ -202,6 +223,16 @@ public class GameManager {
         HashMap<Integer, Integer> result = new HashMap<>();
         for (Map.Entry<String, Object> entry : values.entrySet()) {
             result.put(Integer.parseInt(entry.getKey()), intValue(entry.getValue()));
+        }
+        return result;
+    }
+
+    private static Set<Integer> readIntSet(Object value) {
+        HashSet<Integer> result = new HashSet<>();
+        if (value == null) return result;
+        List<Object> values = asList(value);
+        for (Object item : values) {
+            result.add(intValue(item));
         }
         return result;
     }
@@ -542,6 +573,7 @@ public class GameManager {
         GameManager gm = getInstance();
         gm.pokemon = new Pokemon[6];
         gm.pokemon[0] = starter;
+        gm.addPokemonToDict(starter);
         gm.selectedPokemonIdx = 0;
         gm.itemCount.clear();
         gm.itemCount.put(1, 3);
@@ -610,6 +642,8 @@ public class GameManager {
         }
         if (!placedInParty) box.add(enemyPokemon);
 
+        addPokemonToDict(enemyPokemon);
+
         raiseEvent(Event.newTextEvent(enemyPokemon.name + "을/를 잡았다!"));
         if (!placedInParty) {
             raiseEvent(Event.newTextEvent(enemyPokemon.name + "은/는 박스로 전송되었다."));
@@ -657,6 +691,14 @@ public class GameManager {
 
     public static void addPP(int value) {
         setPP(getPP() + value);
+    }
+
+    public static boolean isCapturedPokemon(int id) {
+        return getInstance().pokemonDict.contains(id);
+    }
+
+    private void addPokemonToDict(Pokemon pokemon) {
+        if (pokemon != null) pokemonDict.add(pokemon.id);
     }
 }
 

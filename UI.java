@@ -84,9 +84,9 @@ public class UI extends JFrame {
 
             LeftMenuBar() {
                 setLayout(null);
-                button[0] = new JButton("이동");
+                button[0] = new JButton("후퇴");
                 button[1] = new JButton("도감");
-                button[2] = new JButton("배낭");
+                button[2] = new JButton("박스");
                 button[3] = new JButton("취소");
 
                 for (int i = 0; i < 4; i++) {
@@ -96,6 +96,7 @@ public class UI extends JFrame {
                     button[i].setLocation(5, i * 100 + 5);
                     button[i].setVisible(true);
                 }
+                button[2].setEnabled(false);
                 button[3].setEnabled(false);
 
                 button[0].addActionListener(new ActionListener() {
@@ -105,7 +106,7 @@ public class UI extends JFrame {
                 });
                 button[1].addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
-                        // TODO
+                        UI.getInstance().mainScreen.mainArea.showPokemonDictionary();
                     }
                 });
                 button[2].addActionListener(new ActionListener() {
@@ -306,6 +307,7 @@ public class UI extends JFrame {
             SelectItemScreen sis = new SelectItemScreen();
             SelectSkillScreen sss = new SelectSkillScreen();
             ChooseStartPokemonScene csps = new ChooseStartPokemonScene();
+            PokemonDictionaryScreen pds = new PokemonDictionaryScreen();
 
             void hideAllFrame() {
                 bs.setVisible(false);
@@ -313,6 +315,7 @@ public class UI extends JFrame {
                 sis.setVisible(false);
                 sss.setVisible(false);
                 csps.setVisible(false);
+                pds.setVisible(false);
             }
 
             MainArea() {
@@ -325,6 +328,83 @@ public class UI extends JFrame {
                 add(sis);
                 add(sss);
                 add(csps);
+                add(pds);
+            }
+
+            class PokemonDictionaryScreen extends JPanel {
+                static final int POKEMON_PER_ROW = 4;
+
+                class PokemonEntry extends JPanel {
+                    private final int pokemonId;
+                    private final JLabel image = new JLabel();
+                    private final JLabel name = new JLabel();
+
+                    PokemonEntry(int pokemonId) {
+                        this.pokemonId = pokemonId;
+                        setLayout(new BorderLayout());
+                        setPreferredSize(new Dimension(120, 154));
+                        setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 1));
+
+                        image.setHorizontalAlignment(SwingConstants.CENTER);
+                        name.setFont(smallFont);
+                        name.setHorizontalAlignment(SwingConstants.CENTER);
+
+                        add(image, BorderLayout.CENTER);
+                        add(name, BorderLayout.SOUTH);
+
+                        updateEntry();
+                    }
+
+                    void updateEntry() {
+                        boolean captured = GameManager.isCapturedPokemon(pokemonId);
+                        BufferedImage source = captured ? POKEMON_IMG[pokemonId][6] : GRAY_POKEMON_IMG[pokemonId][6];
+                        image.setIcon(new ImageIcon(source.getScaledInstance(96, 96, Image.SCALE_DEFAULT)));
+                        name.setText(Pokemon.NAME_TABLE[pokemonId]);
+                        setBackground(captured ? Color.WHITE : Color.LIGHT_GRAY);
+                    }
+                }
+
+                List<PokemonEntry> entries = new ArrayList<>();
+                JScrollPane scrollPane = new JScrollPane();
+                JPanel gridPanel = new JPanel();
+
+                PokemonDictionaryScreen() {
+                    setSize(600, 400);
+                    setLocation(0, 0);
+                    setLayout(new BorderLayout());
+                    setBackground(Color.GRAY);
+
+                    gridPanel.setLayout(new GridLayout(0, POKEMON_PER_ROW));
+                    gridPanel.setBackground(Color.GRAY);
+                    scrollPane.setViewportView(gridPanel);
+                    scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+                    scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+                    scrollPane.setBorder(null);
+                    add(scrollPane, BorderLayout.CENTER);
+
+                    for (int id = 1; id < Pokemon.NAME_TABLE.length; id++) {
+                        PokemonEntry entry = new PokemonEntry(id);
+                        entries.add(entry);
+                        gridPanel.add(entry);
+                    }
+                }
+
+                void refreshEntries() {
+                    for (PokemonEntry entry : entries) {
+                        entry.updateEntry();
+                    }
+                    gridPanel.revalidate();
+                    gridPanel.repaint();
+                }
+
+                @Override
+                public void setVisible(boolean aFlag) {
+                    if (aFlag) {
+                        hideAllFrame();
+                        refreshEntries();
+                    }
+                    super.setVisible(aFlag);
+                }
             }
 
             class ChooseStartPokemonScene extends JPanel {
@@ -824,9 +904,14 @@ public class UI extends JFrame {
                 sss.setVisible(true);
             }
 
+            public void showPokemonDictionary() {
+                pds.setVisible(true);
+            }
+
             public void chooseStartPokemon() {
                 csps.resetButtons();
                 csps.setVisible(true);
+                UI.getInstance().mainScreen.leftMenuBar.button[3].setEnabled(false);
                 GameManager.raiseEvent(Event.newTextEvent("스타팅 포켓몬을 선택하세요"));
             }
         }
@@ -851,8 +936,8 @@ public class UI extends JFrame {
         } catch (IOException | FontFormatException e) { 
             System.out.println("loadFontError"); System.exit(1); 
         }
-        mainScreen = new MainScreen();
         loadSprite();
+        mainScreen = new MainScreen();
         setSize(700, 665);
         setResizable(false);
         setLocationRelativeTo(null);
