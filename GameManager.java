@@ -417,7 +417,6 @@ public class GameManager {
                 el.accept(e);
             }
 
-            // TODO GameManager 레벨에서 이벤트로 인해 처리해야 할 것 진행
             switch(e.type) {
                 case Event.EVENT_TYPE.BATTLE_START:
                     enemyPokemon = e.pokemon;

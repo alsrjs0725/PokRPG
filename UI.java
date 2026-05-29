@@ -5,6 +5,7 @@ import javax.swing.border.EmptyBorder;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -25,12 +26,38 @@ public class UI extends JFrame {
         return ui;
     }
 
+    private static BufferedImage loadImageAsset(String relPath) {
+        try {
+            return ImageIO.read(new File(relPath));
+        } catch (IOException e) {
+            try (InputStream is = UI.class.getResourceAsStream("/" + relPath.replaceFirst("^\\./", ""))) {
+                if (is != null) return ImageIO.read(is);
+            } catch (IOException ex) {
+            }
+        }
+        return null;
+    }
+
+    private static Font loadFontAsset(String relPath, float size) throws IOException, FontFormatException {
+        try {
+            return Font.createFont(Font.TRUETYPE_FONT, new File(relPath)).deriveFont(size);
+        } catch (Exception e) {
+            try (InputStream is = UI.class.getResourceAsStream("/" + relPath.replaceFirst("^\\./", ""))) {
+                if (is != null) return Font.createFont(Font.TRUETYPE_FONT, is).deriveFont(size);
+            } catch (Exception ex) {
+            }
+            throw new IOException("Font load failed: " + relPath);
+        }
+    }
+
     public static void loadSprite() {
         if (POKEMON_IMG[1][0] != null) return;
         int x, y, tmp;
         BufferedImage baseSprite = null, grayScaledSprite = null;
-        try { baseSprite = ImageIO.read(new File("./asset/PokemonSprite.png")); } catch (IOException e) { System.out.println("loadBaseSpriteError"); System.exit(1);}
-        try { grayScaledSprite = ImageIO.read(new File("./asset/PokemonSpriteGrayScaled.png")); } catch (IOException e) { System.out.println("loadBaseSpriteError"); System.exit(1);}
+        baseSprite = loadImageAsset("./asset/PokemonSprite.png");
+        if (baseSprite == null) { System.out.println("loadBaseSpriteError"); System.exit(1); }
+        grayScaledSprite = loadImageAsset("./asset/PokemonSpriteGrayScaled.png");
+        if (grayScaledSprite == null) { System.out.println("loadBaseSpriteError"); System.exit(1); }
 
         for (int i = 1; i < 152; i++) {
             tmp = i - 1;
@@ -229,7 +256,6 @@ public class UI extends JFrame {
                         button[i].setLocation((i % 2 == 0)?5:345, (i / 2 == 0)?5:115);
                     }
                     setVisible(false);
-                    // TODO BUTTON EVENT LISTENER
                     button[0].addActionListener(new ActionListener() {
                         public void actionPerformed(ActionEvent e){
                             setVisible(false);
@@ -356,16 +382,12 @@ public class UI extends JFrame {
             class PokemonCenterScreen extends JPanel {
                 BufferedImage centerImage = null;
 
-                PokemonCenterScreen() {
+                    PokemonCenterScreen() {
                     setSize(600, 400);
                     setLocation(0, 0);
                     setBackground(Color.BLACK);
                     setVisible(false);
-                    try {
-                        centerImage = ImageIO.read(new File("./asset/PokemonCenter.png"));
-                    } catch (IOException e) {
-                        centerImage = null;
-                    }
+                    centerImage = loadImageAsset("./asset/PokemonCenter.png");
                 }
 
                 @Override
@@ -918,7 +940,7 @@ public class UI extends JFrame {
                     setBackground(Color.GRAY);
 
                     GameManager.registEventListener((Event e) -> {  // event 처리
-                        switch (e.type) { // TODO SKILL CHANGE DEAD AND MORE
+                        switch (e.type) {
                             case Event.EVENT_TYPE.ATTACK:
                             case Event.EVENT_TYPE.SKILL:
                                 x += 10;
@@ -963,7 +985,6 @@ public class UI extends JFrame {
                                 break;
                             case Event.EVENT_TYPE.CHANGE:
                                 setVisible(true);
-                                // TODO ADD MOTION
                                 break;
                             case Event.EVENT_TYPE.START_POKEMON_EVENT:
                                 chooseStartPokemon();
@@ -1221,7 +1242,7 @@ public class UI extends JFrame {
 
     public UI() {
         try { 
-            largeFont = Font.createFont(Font.TRUETYPE_FONT, new File("./asset/DungGeunMo.ttf")).deriveFont(38.0f); 
+            largeFont = loadFontAsset("./asset/DungGeunMo.ttf", 38.0f);
             mediumFont = largeFont.deriveFont(24.0f);
             smallFont = largeFont.deriveFont(18.0f);
         } catch (IOException | FontFormatException e) { 
